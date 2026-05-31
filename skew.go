@@ -66,10 +66,7 @@ func NewClockSkewDetector(capacity int) *ClockSkewDetector {
 
 func (d *ClockSkewDetector) Record(matchedOffset int64, windowUsed uint64) {
 	d.inner.Lock()
-	defer d.inner.Unlock()
-
 	s := &d.state
-
 	if s.length < s.capacity {
 		s.buffer = append(s.buffer, matchedOffset)
 		s.sum += matchedOffset
@@ -81,25 +78,32 @@ func (d *ClockSkewDetector) Record(matchedOffset int64, windowUsed uint64) {
 	} else {
 		old := s.buffer[s.writeIdx]
 		s.buffer[s.writeIdx] = matchedOffset
-
 		s.sum = s.sum - old + matchedOffset
-
 		if old != 0 {
 			s.nonZeroCount--
 		}
 		if matchedOffset != 0 {
 			s.nonZeroCount++
 		}
-
 		s.writeIdx = (s.writeIdx + 1) % s.capacity
 	}
 
+	currentSum := s.sum
+	currentLength := s.length
+	d.inner.Unlock()
+
 	atomic.StoreInt64(&d.lastWindowUsed, int64(windowUsed))
 
-	if atomic.LoadInt32(&d.autoAdjust) == 1 && s.length >= 16 {
-		mean := float64(s.sum) / float64(s.length)
-		if math.Abs(mean) >= 0.5 {
-			atomic.StoreInt64(&d.offset, int64(math.Round(mean)))
+	if atomic.LoadInt32(&d.autoAdjust) == 1 && currentLength >= 16 {
+		mean := float64(currentSum) / float64(currentLength)
+
+		currentOffset := float64(atomic.LoadInt64(&d.offset))
+		// Semakin kecil semakin smooth tapi lebih lambat responnya.
+		alpha := 0.2
+		smoothedOffset := (mean * alpha) + (currentOffset * (1.0 - alpha))
+
+		if math.Abs(smoothedOffset) >= 0.5 {
+			atomic.StoreInt64(&d.offset, int64(math.Round(smoothedOffset)))
 		} else {
 			atomic.StoreInt64(&d.offset, 0)
 		}
@@ -154,7 +158,6 @@ func (d *ClockSkewDetector) Report() SkewReport {
 	}
 
 	meanOffset := float64(s.sum) / float64(sampleCount)
-
 	edgeHits := 0
 	if windowUsed > 0 {
 		for _, v := range s.buffer {
