@@ -16,12 +16,20 @@ const maxLookAhead = 10000
 
 var contextBindTagBytes = []byte(contextBindTag)
 
+const maxHMACSize = 64
+
+type macBuf struct {
+	mac     hash.Hash
+	counter [8]byte
+	sum     [maxHMACSize]byte
+}
+
 type HOTP struct {
 	secret    []byte
 	algorithm Algorithm
 	digits    uint32
 	modValue  uint32
-	hashFunc  func() hash.Hash
+	macPool   sync.Pool
 	mu        sync.RWMutex
 }
 
@@ -29,25 +37,27 @@ func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
 	if digits < 6 || digits > 8 {
 		return nil, ErrInvalidDigits
 	}
+
 	if len(secret) == 0 {
 		return nil, ErrInvalidSecret
 	}
+
 	hashFn, ok := hashFuncFor(algorithm)
 	if !ok {
 		return nil, ErrInvalidAlgorithm
 	}
 
-	// Copy secret untuk menghindari perubahan dari luar
-	secretCopy := make([]byte, len(secret))
-	copy(secretCopy, secret)
-
-	return &HOTP{
-		secret:    secretCopy,
+	h := &HOTP{
+		secret:    secret,
 		algorithm: algorithm,
 		digits:    digits,
 		modValue:  uint32(math.Pow10(int(digits))),
-		hashFunc:  hashFn,
-	}, nil
+	}
+
+	h.macPool.New = func() any {
+		return &macBuf{mac: hmac.New(hashFn, h.secret)}
+	}
+	return h, nil
 }
 
 func hashFuncFor(algorithm Algorithm) (func() hash.Hash, bool) {
@@ -72,13 +82,14 @@ func (h *HOTP) Generate(counter uint64) (string, error) {
 func (h *HOTP) Verify(code string, counter uint64) (bool, error) {
 	var userBuf [8]byte
 	userBytes := userBuf[:copy(userBuf[:], code)]
+
 	var expectedBuf [8]byte
 	expected := h.genDigits(expectedBuf[:], counter, nil)
 	return constTimeEqBytes(userBytes, expected), nil
 }
 
 func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (uint64, bool, error) {
-	// Batas lookAhead untuk mencegah brute-force
+	// Batasi lookAhead untuk mencegah brute-force
 	effectiveLookAhead := min(lookAhead, maxLookAhead)
 
 	var userBuf [8]byte
@@ -89,12 +100,14 @@ func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (
 		if testCounter < counter {
 			break
 		}
+
 		var expectedBuf [8]byte
 		expected := h.genDigits(expectedBuf[:], testCounter, nil)
 		if constTimeEqBytes(userBytes, expected) {
 			return testCounter, true, nil
 		}
 	}
+
 	return 0, false, nil
 }
 
@@ -115,6 +128,7 @@ func (h *HOTP) VerifyBound(code string, counter uint64, context *OtpContext) (bo
 	}
 	var userBuf [8]byte
 	userBytes := userBuf[:copy(userBuf[:], code)]
+
 	var expectedBuf [8]byte
 	expected := h.genDigits(expectedBuf[:], counter, ctxBytes)
 	return constTimeEqBytes(userBytes, expected), nil
@@ -126,22 +140,22 @@ func (h *HOTP) genDigits(dst []byte, counter uint64, context []byte) []byte {
 }
 
 func (h *HOTP) computeTruncated(counter uint64, context []byte) uint32 {
-	// read secret agar aman ketika ClearSecret() sedang berlangsung
+	mb := h.macPool.Get().(*macBuf)
+	binary.BigEndian.PutUint64(mb.counter[:], counter)
+	mb.mac.Reset()
+
+	// Baca secret dengan mutex
 	h.mu.RLock()
-	secret := h.secret
-	hashFn := h.hashFunc
+	mb.mac.Write(mb.counter[:])
+	if len(context) > 0 {
+		mb.mac.Write(contextBindTagBytes)
+		mb.mac.Write(context)
+	}
+	hmacBytes := mb.mac.Sum(mb.sum[:0])
 	h.mu.RUnlock()
 
-	mac := hmac.New(hashFn, secret)
-	var counterBytes [8]byte
-	binary.BigEndian.PutUint64(counterBytes[:], counter)
-	mac.Write(counterBytes[:])
-	if len(context) > 0 {
-		mac.Write(contextBindTagBytes)
-		mac.Write(context)
-	}
-	hmacBytes := mac.Sum(nil)
 	truncated := dynamicTruncate(hmacBytes, h.modValue)
+	h.macPool.Put(mb)
 	return truncated
 }
 
@@ -166,13 +180,8 @@ func formatOTP(dst []byte, code, digits uint32) []byte {
 func (h *HOTP) ClearSecret() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if h.secret == nil {
-		return
-	}
 
 	for i := range h.secret {
 		h.secret[i] = 0
 	}
-
-	h.secret = nil
 }
