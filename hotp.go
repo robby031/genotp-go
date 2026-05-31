@@ -12,6 +12,7 @@ import (
 )
 
 const contextBindTag = "genotp-ctx-v1\x00"
+const maxLookAhead = 10000
 
 var contextBindTagBytes = []byte(contextBindTag)
 
@@ -29,6 +30,7 @@ type HOTP struct {
 	digits    uint32
 	modValue  uint32
 	macPool   sync.Pool
+	mu        sync.RWMutex
 }
 
 func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
@@ -87,10 +89,12 @@ func (h *HOTP) Verify(code string, counter uint64) (bool, error) {
 }
 
 func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (uint64, bool, error) {
+	// Batas lookAhead untuk mencegah brute-force
+	effectiveLookAhead := min(lookAhead, maxLookAhead)
 	var userBuf [8]byte
 	userBytes := userBuf[:copy(userBuf[:], code)]
 
-	for i := uint64(0); i <= lookAhead; i++ {
+	for i := uint64(0); i <= effectiveLookAhead; i++ {
 		testCounter := counter + i
 		if testCounter < counter {
 			break
@@ -138,12 +142,17 @@ func (h *HOTP) computeTruncated(counter uint64, context []byte) uint32 {
 	mb := h.macPool.Get().(*macBuf)
 	binary.BigEndian.PutUint64(mb.counter[:], counter)
 	mb.mac.Reset()
+
+	// Baca secret dengan mutex
+	h.mu.RLock()
 	mb.mac.Write(mb.counter[:])
 	if len(context) > 0 {
 		mb.mac.Write(contextBindTagBytes)
 		mb.mac.Write(context)
 	}
 	hmacBytes := mb.mac.Sum(mb.sum[:0])
+	h.mu.RUnlock()
+
 	truncated := dynamicTruncate(hmacBytes, h.modValue)
 	h.macPool.Put(mb)
 	return truncated
@@ -168,6 +177,9 @@ func formatOTP(dst []byte, code, digits uint32) []byte {
 }
 
 func (h *HOTP) ClearSecret() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	for i := range h.secret {
 		h.secret[i] = 0
 	}
