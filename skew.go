@@ -47,11 +47,14 @@ type skewState struct {
 	nonZeroCount int
 }
 
+const emaScale = 1000
+
 type ClockSkewDetector struct {
 	inner          sync.Mutex
 	state          skewState
 	autoAdjust     int32
 	offset         int64
+	smoothedScaled int64
 	lastWindowUsed int64
 }
 
@@ -97,13 +100,14 @@ func (d *ClockSkewDetector) Record(matchedOffset int64, windowUsed uint64) {
 	if atomic.LoadInt32(&d.autoAdjust) == 1 && currentLength >= 16 {
 		mean := float64(currentSum) / float64(currentLength)
 
-		currentOffset := float64(atomic.LoadInt64(&d.offset))
-		// Semakin kecil semakin smooth tapi lebih lambat responnya.
-		alpha := 0.2
-		smoothedOffset := (mean * alpha) + (currentOffset * (1.0 - alpha))
+		const alpha = 0.2
+		prevScaled := atomic.LoadInt64(&d.smoothedScaled)
+		prev := float64(prevScaled) / float64(emaScale)
+		smoothed := alpha*mean + (1-alpha)*prev
+		atomic.StoreInt64(&d.smoothedScaled, int64(math.Round(smoothed*float64(emaScale))))
 
-		if math.Abs(smoothedOffset) >= 0.5 {
-			atomic.StoreInt64(&d.offset, int64(math.Round(smoothedOffset)))
+		if math.Abs(smoothed) >= 0.5 {
+			atomic.StoreInt64(&d.offset, int64(math.Round(smoothed)))
 		} else {
 			atomic.StoreInt64(&d.offset, 0)
 		}
@@ -121,6 +125,7 @@ func (d *ClockSkewDetector) EnableAutoAdjust() {
 func (d *ClockSkewDetector) DisableAutoAdjust() {
 	atomic.StoreInt32(&d.autoAdjust, 0)
 	atomic.StoreInt64(&d.offset, 0)
+	atomic.StoreInt64(&d.smoothedScaled, 0)
 }
 
 func (d *ClockSkewDetector) IsAutoAdjust() bool {
@@ -136,6 +141,7 @@ func (d *ClockSkewDetector) Reset() {
 		capacity: d.state.capacity,
 	}
 	atomic.StoreInt64(&d.offset, 0)
+	atomic.StoreInt64(&d.smoothedScaled, 0)
 }
 
 func (d *ClockSkewDetector) Report() SkewReport {

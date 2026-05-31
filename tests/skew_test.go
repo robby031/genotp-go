@@ -77,20 +77,20 @@ func TestClockSkewDetectorAutoAdjust(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		d.Record(2, 3)
 	}
-	d.Report()
 	offset := d.CurrentOffset()
-	tries := 0
-	for offset == 0 && tries < 1000 {
-		d.Record(2, 3)
-		d.Report()
-		offset = d.CurrentOffset()
-		tries++
-	}
-	if offset == 0 {
-		t.Skipf("Offset did not move from 0 after %d samples, skipping (smoothing too slow for test)", tries+100)
-	}
 	if math.Abs(float64(offset-2)) > 1 {
 		t.Errorf("Offset should be close to 2 in auto-adjust mode, got %d", offset)
+	}
+}
+
+func TestClockSkewDetectorEMAConvergesForSmallDrift(t *testing.T) {
+	d := genotp.NewClockSkewDetector(100)
+	d.EnableAutoAdjust()
+	for i := 0; i < 80; i++ {
+		d.Record(2, 3)
+	}
+	if got := d.CurrentOffset(); got == 0 {
+		t.Errorf("EMA stuck at 0 — fixed-point state regression")
 	}
 }
 

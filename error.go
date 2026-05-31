@@ -12,6 +12,7 @@ var (
 	ErrVerificationFailed = errors.New("OTP verification failed")
 	ErrRateLimited        = errors.New("rate limited")
 	ErrReplayAttack       = errors.New("replay attack detected")
+	ErrDstTooSmall        = errors.New("destination buffer too small")
 )
 
 type GenOtpError struct {

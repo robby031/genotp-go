@@ -151,8 +151,11 @@ Prevent OTP code reuse with:
 - `GenTotpDefault()`: Generate TOTP with default parameters
 - `VerifyHotpDefault()`: Verify HOTP with default parameters
 - `VerifyTotpDefault()`: Verify TOTP with default parameters
-- `EncodeBase32()`: Encode bytes to Base32
-- `DecodeBase32()`: Decode Base32 to bytes
+- `EncodeBase32(data []byte) string`: Encode bytes to Base32 (RFC 4648, no padding)
+- `DecodeBase32(dst []byte, src string) (int, error)`: Decode Base32 ke buffer
+  caller. Strip ASCII whitespace, `-`, dan `=` otomatis. Mengembalikan
+  jumlah byte yang ditulis. Returns `ErrDstTooSmall` jika `dst` kekecilan,
+  `ErrInvalidSecret` jika ada karakter invalid.
 
 ## Testing
 

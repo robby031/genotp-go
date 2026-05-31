@@ -9,6 +9,7 @@ import (
 	"hash"
 	"math"
 	"sync"
+	"sync/atomic"
 )
 
 const contextBindTag = "genotp-ctx-v1\x00"
@@ -30,7 +31,7 @@ type HOTP struct {
 	digits    uint32
 	modValue  uint32
 	macPool   sync.Pool
-	mu        sync.RWMutex
+	cleared   atomic.Bool
 }
 
 func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
@@ -76,12 +77,18 @@ func hashFuncFor(algorithm Algorithm) (func() hash.Hash, bool) {
 }
 
 func (h *HOTP) Generate(counter uint64) (string, error) {
+	if h.cleared.Load() {
+		return "", ErrInvalidSecret
+	}
 	var buf [8]byte
 	out := h.genDigits(buf[:], counter, nil)
 	return string(out), nil
 }
 
 func (h *HOTP) Verify(code string, counter uint64) (bool, error) {
+	if h.cleared.Load() {
+		return false, ErrInvalidSecret
+	}
 	var userBuf [8]byte
 	userBytes := userBuf[:copy(userBuf[:], code)]
 
@@ -91,13 +98,17 @@ func (h *HOTP) Verify(code string, counter uint64) (bool, error) {
 }
 
 func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (uint64, bool, error) {
-	// Batasi lookAhead untuk mencegah brute-force
-	effectiveLookAhead := min(lookAhead, maxLookAhead)
+	if h.cleared.Load() {
+		return 0, false, ErrInvalidSecret
+	}
+	if lookAhead > maxLookAhead {
+		return 0, false, ErrInvalidCounter
+	}
 
 	var userBuf [8]byte
 	userBytes := userBuf[:copy(userBuf[:], code)]
 
-	for i := uint64(0); i <= effectiveLookAhead; i++ {
+	for i := uint64(0); i <= lookAhead; i++ {
 		testCounter := counter + i
 		if testCounter < counter {
 			break
@@ -114,6 +125,9 @@ func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (
 }
 
 func (h *HOTP) GenBound(counter uint64, context *OtpContext) (string, error) {
+	if h.cleared.Load() {
+		return "", ErrInvalidSecret
+	}
 	var ctxBytes []byte
 	if context != nil {
 		ctxBytes = context.Bytes()
@@ -124,6 +138,9 @@ func (h *HOTP) GenBound(counter uint64, context *OtpContext) (string, error) {
 }
 
 func (h *HOTP) VerifyBound(code string, counter uint64, context *OtpContext) (bool, error) {
+	if h.cleared.Load() {
+		return false, ErrInvalidSecret
+	}
 	var ctxBytes []byte
 	if context != nil {
 		ctxBytes = context.Bytes()
@@ -145,17 +162,12 @@ func (h *HOTP) computeTruncated(counter uint64, context []byte) uint32 {
 	mb := h.macPool.Get().(*macBuf)
 	binary.BigEndian.PutUint64(mb.counter[:], counter)
 	mb.mac.Reset()
-
-	// Baca secret dengan mutex
-	h.mu.RLock()
 	mb.mac.Write(mb.counter[:])
 	if len(context) > 0 {
 		mb.mac.Write(contextBindTagBytes)
 		mb.mac.Write(context)
 	}
 	hmacBytes := mb.mac.Sum(mb.sum[:0])
-	h.mu.RUnlock()
-
 	truncated := dynamicTruncate(hmacBytes, h.modValue)
 	h.macPool.Put(mb)
 	return truncated
@@ -180,17 +192,8 @@ func formatOTP(dst []byte, code, digits uint32) []byte {
 }
 
 func (h *HOTP) ClearSecret() {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
+	h.cleared.Store(true)
 	for i := range h.secret {
 		h.secret[i] = 0
-	}
-
-	hashFn, _ := hashFuncFor(h.algorithm)
-	h.macPool.New = func() any {
-		return &macBuf{
-			mac: hmac.New(hashFn, h.secret),
-		}
 	}
 }

@@ -27,23 +27,19 @@ type Verifier struct {
 }
 
 func NewVerifier(maxAttempts uint32) *Verifier {
+	return NewVerifierWithCapacity(maxAttempts, defaultMaxUsedCodes)
+}
+
+func NewVerifierWithCapacity(maxAttempts uint32, maxUsedCodes int) *Verifier {
 	v := &Verifier{
 		usedCodes:    make(map[string]struct{}),
-		maxUsedCodes: defaultMaxUsedCodes,
+		maxUsedCodes: maxUsedCodes,
 		maxAttempts:  maxAttempts,
 	}
 	v.bufPool.New = func() any {
 		return &replayBuf{bytes: make([]byte, 0, 128)}
 	}
 	return v
-}
-
-func NewVerifierWithCapacity(maxAttempts uint32, maxUsedCodes int) *Verifier {
-	return &Verifier{
-		usedCodes:    make(map[string]struct{}),
-		maxUsedCodes: maxUsedCodes,
-		maxAttempts:  maxAttempts,
-	}
 }
 
 func (v *Verifier) VerifyWithReplayProtection(code, expected string) bool {
@@ -83,6 +79,18 @@ func (v *Verifier) verifyInner(code, expected string, issuedContext, requestCont
 	ctxMatch := constTimeEqBytes(issuedContext, requestContext)
 	codeMatch := constantTimeEq(code, expected)
 
+	// attempt malicious:
+	//
+	// Skenario bypass rate-limit yang kita tutup:
+	// maxAttempts=3. Attacker punya 1 OTP lama yang sudah pernah valid
+	// (sudah masuk usedCodes). Tanpa increment-on-replay, attacker bisa
+	// alternasi "wrong" -> "replayed valid" -> "wrong" -> "replayed
+	// valid" tanpa pernah kena rate-limit, karena setiap replay
+	// dianggap "gratis" (return false tanpa naikkan attempts).
+	//
+	// User legit tidak punya alasan mengirim kode yang sudah di-mark used —
+	// itu sinyal kuat aktivitas malicious, jadi pantas dihukum oleh rate
+	// limiter.
 	if isReplay || !ctxMatch || !codeMatch {
 		v.attempts++
 		v.bufPool.Put(b)

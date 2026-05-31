@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,7 +16,7 @@ type TOTP struct {
 	period    uint64
 	modValue  uint32
 	macPool   sync.Pool
-	mu        sync.RWMutex
+	cleared   atomic.Bool
 }
 
 func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (*TOTP, error) {
@@ -51,6 +52,9 @@ func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (
 }
 
 func (t *TOTP) Generate(timeVal *uint64) (string, error) {
+	if t.cleared.Load() {
+		return "", ErrInvalidSecret
+	}
 	current := nowOr(timeVal)
 	counter := current / t.period
 
@@ -60,6 +64,9 @@ func (t *TOTP) Generate(timeVal *uint64) (string, error) {
 }
 
 func (t *TOTP) Verify(code string, timeVal *uint64, window uint64) (bool, error) {
+	if t.cleared.Load() {
+		return false, ErrInvalidSecret
+	}
 	current := nowOr(timeVal)
 	counter := current / t.period
 	if window > math.MaxInt64 {
@@ -82,6 +89,9 @@ func (t *TOTP) Verify(code string, timeVal *uint64, window uint64) (bool, error)
 }
 
 func (t *TOTP) GenBound(context *OtpContext, timeVal *uint64) (string, error) {
+	if t.cleared.Load() {
+		return "", ErrInvalidSecret
+	}
 	current := nowOr(timeVal)
 	counter := current / t.period
 
@@ -96,6 +106,9 @@ func (t *TOTP) GenBound(context *OtpContext, timeVal *uint64) (string, error) {
 }
 
 func (t *TOTP) VerifyBound(code string, context *OtpContext, timeVal *uint64, window uint64) (bool, error) {
+	if t.cleared.Load() {
+		return false, ErrInvalidSecret
+	}
 	current := nowOr(timeVal)
 	counter := current / t.period
 	if window > math.MaxInt64 {
@@ -123,6 +136,9 @@ func (t *TOTP) VerifyBound(code string, context *OtpContext, timeVal *uint64, wi
 }
 
 func (t *TOTP) VerifyTracking(code string, timeVal *uint64, window uint64, detector *ClockSkewDetector) (bool, error) {
+	if t.cleared.Load() {
+		return false, ErrInvalidSecret
+	}
 	current := nowOr(timeVal)
 	baseCounter := current / t.period
 	adjustedCounter, ok := checkedAddSigned(baseCounter, detector.CurrentOffset())
@@ -163,16 +179,11 @@ func (t *TOTP) computeTruncated(counter uint64, context []byte) uint32 {
 	mb := t.macPool.Get().(*macBuf)
 	binary.BigEndian.PutUint64(mb.counter[:], counter)
 	mb.mac.Reset()
-
-	t.mu.RLock()
 	mb.mac.Write(mb.counter[:])
 	if len(context) > 0 {
 		mb.mac.Write(contextBindTagBytes)
 		mb.mac.Write(context)
 	}
-
-	t.mu.RUnlock()
-
 	hmacBytes := mb.mac.Sum(mb.sum[:0])
 	truncated := dynamicTruncate(hmacBytes, t.modValue)
 	t.macPool.Put(mb)
@@ -180,18 +191,9 @@ func (t *TOTP) computeTruncated(counter uint64, context []byte) uint32 {
 }
 
 func (t *TOTP) ClearSecret() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
+	t.cleared.Store(true)
 	for i := range t.secret {
 		t.secret[i] = 0
-	}
-
-	hashFn, _ := hashFuncFor(t.algorithm)
-	t.macPool.New = func() any {
-		return &macBuf{
-			mac: hmac.New(hashFn, t.secret),
-		}
 	}
 }
 

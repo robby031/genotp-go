@@ -2,7 +2,6 @@ package genotp
 
 import (
 	"encoding/base32"
-	"errors"
 	"sync"
 )
 
@@ -35,7 +34,9 @@ func DecodeBase32(dst []byte, src string) (int, error) {
 
 	for i := 0; i < len(src); i++ {
 		c := src[i]
-		if c == ' ' || c == '-' || c == '=' {
+
+		switch c {
+		case ' ', '-', '=', '\t', '\n', '\r', '\v', '\f':
 			continue
 		}
 		buf = append(buf, c)
@@ -61,7 +62,7 @@ func DecodeBase32(dst []byte, src string) (int, error) {
 		if bitsLeft >= 8 {
 			bitsLeft -= 8
 			if dstIdx >= len(dst) {
-				return 0, errors.New("destination buffer too small")
+				return 0, ErrDstTooSmall
 			}
 			dst[dstIdx] = byte(buffer >> bitsLeft)
 			dstIdx++
