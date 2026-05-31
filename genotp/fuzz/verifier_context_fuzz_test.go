@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func FuzzVerifierContext(f *testing.F) {
@@ -42,10 +44,10 @@ func FuzzVerifierContext(f *testing.F) {
 		issuedBytes := body[:issuedLen]
 		requestBytes := body[issuedLen : issuedLen+requestLen]
 
-		issued := OtpContextFromBytes(issuedBytes)
-		request := OtpContextFromBytes(requestBytes)
+		issued := genotp.OtpContextFromBytes(issuedBytes)
+		request := genotp.OtpContextFromBytes(requestBytes)
 
-		verifier := NewVerifier(1000000)
+		verifier := genotp.NewVerifier(1000000)
 
 		if string(issuedBytes) == string(requestBytes) {
 			first := verifier.VerifyWithContext(codeStr, codeStr, issued, request)

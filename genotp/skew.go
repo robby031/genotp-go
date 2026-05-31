@@ -15,6 +15,21 @@ const (
 	WidenWindowOrCheckNtp
 )
 
+func (r SkewRecommendation) String() string {
+	switch r {
+	case InsufficientData:
+		return "InsufficientData"
+	case NoActionNeeded:
+		return "NoActionNeeded"
+	case ConsistentDrift:
+		return "ConsistentDrift"
+	case WidenWindowOrCheckNtp:
+		return "WidenWindowOrCheckNtp"
+	default:
+		return "Unknown"
+	}
+}
+
 type SkewReport struct {
 	SampleCount    int
 	MeanOffset     float64

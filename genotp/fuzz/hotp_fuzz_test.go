@@ -1,8 +1,10 @@
-package genotp
+package genotp_test
 
 import (
 	"encoding/binary"
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func FuzzHOTP(f *testing.F) {
@@ -25,16 +27,16 @@ func FuzzHOTP(f *testing.F) {
 			counter = binary.BigEndian.Uint64(counterBytes)
 		}
 
-		if hotp, err := NewHOTP(secret, SHA1, 6); err == nil {
+		if hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6); err == nil {
 			_, _ = hotp.Generate(counter)
 			_, _ = hotp.Verify("123456", counter)
 		}
 
-		if hotp, err := NewHOTP(secret, SHA256, 6); err == nil {
+		if hotp, err := genotp.NewHOTP(secret, genotp.SHA256, 6); err == nil {
 			_, _ = hotp.Generate(counter)
 		}
 
-		if hotp, err := NewHOTP(secret, SHA512, 6); err == nil {
+		if hotp, err := genotp.NewHOTP(secret, genotp.SHA512, 6); err == nil {
 			_, _ = hotp.Generate(counter)
 		}
 	})

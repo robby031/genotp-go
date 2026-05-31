@@ -3,7 +3,6 @@ package genotp
 import (
 	"crypto/rand"
 	"errors"
-	"math/big"
 )
 
 const (
@@ -52,12 +51,4 @@ func (k *KeyGenerator) GenerateDefaultSecret() ([]byte, error) {
 func CreateSecret() ([]byte, error) {
 	kg := &KeyGenerator{}
 	return kg.GenerateDefaultSecret()
-}
-
-func RandomInt(max *big.Int) (int, error) {
-	n, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		return 0, err
-	}
-	return int(n.Int64()), nil
 }

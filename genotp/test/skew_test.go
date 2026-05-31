@@ -1,28 +1,30 @@
-package genotp
+package genotp_test
 
 import (
 	"math"
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func TestClockSkewDetectorInsufficientData(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	for i := 0; i < 5; i++ {
 		d.Record(int64(i), 1)
 	}
 	r := d.Report()
-	if r.Recommendation != InsufficientData {
+	if r.Recommendation != genotp.InsufficientData {
 		t.Errorf("Expected InsufficientData, got %v", r.Recommendation)
 	}
 }
 
 func TestClockSkewDetectorNoDrift(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	for i := 0; i < 50; i++ {
 		d.Record(0, 1)
 	}
 	r := d.Report()
-	if r.Recommendation != NoActionNeeded {
+	if r.Recommendation != genotp.NoActionNeeded {
 		t.Errorf("Expected NoActionNeeded, got %v", r.Recommendation)
 	}
 	if r.NonZeroCount != 0 {
@@ -34,12 +36,12 @@ func TestClockSkewDetectorNoDrift(t *testing.T) {
 }
 
 func TestClockSkewDetectorConsistentDrift(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	for i := 0; i < 50; i++ {
 		d.Record(1, 2)
 	}
 	r := d.Report()
-	if r.Recommendation != ConsistentDrift {
+	if r.Recommendation != genotp.ConsistentDrift {
 		t.Errorf("Expected ConsistentDrift, got %v", r.Recommendation)
 	}
 	if math.Abs(r.MeanOffset-1.0) > 0.01 {
@@ -48,7 +50,7 @@ func TestClockSkewDetectorConsistentDrift(t *testing.T) {
 }
 
 func TestClockSkewDetectorEdgeHits(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	for i := 0; i < 30; i++ {
 		d.Record(1, 1)
 	}
@@ -56,7 +58,7 @@ func TestClockSkewDetectorEdgeHits(t *testing.T) {
 		d.Record(-1, 1)
 	}
 	r := d.Report()
-	if r.Recommendation != WidenWindowOrCheckNtp {
+	if r.Recommendation != genotp.WidenWindowOrCheckNtp {
 		t.Errorf("Expected WidenWindowOrCheckNtp, got %v", r.Recommendation)
 	}
 	if r.EdgeHitRatio < 0.2 {
@@ -65,7 +67,7 @@ func TestClockSkewDetectorEdgeHits(t *testing.T) {
 }
 
 func TestClockSkewDetectorAutoAdjust(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	d.EnableAutoAdjust()
 
 	if d.CurrentOffset() != 0 {
@@ -82,7 +84,7 @@ func TestClockSkewDetectorAutoAdjust(t *testing.T) {
 }
 
 func TestClockSkewDetectorPassiveMode(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	for i := 0; i < 50; i++ {
 		d.Record(5, 10)
 	}
@@ -92,7 +94,7 @@ func TestClockSkewDetectorPassiveMode(t *testing.T) {
 }
 
 func TestClockSkewDetectorReset(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	d.EnableAutoAdjust()
 	for i := 0; i < 20; i++ {
 		d.Record(3, 5)
@@ -111,7 +113,7 @@ func TestClockSkewDetectorReset(t *testing.T) {
 }
 
 func TestClockSkewDetectorCapacity(t *testing.T) {
-	d := NewClockSkewDetector(10)
+	d := genotp.NewClockSkewDetector(10)
 	for i := 0; i < 100; i++ {
 		d.Record(int64(i), 1)
 	}
@@ -121,7 +123,7 @@ func TestClockSkewDetectorCapacity(t *testing.T) {
 }
 
 func TestClockSkewDetectorDisableAutoAdjust(t *testing.T) {
-	d := NewClockSkewDetector(100)
+	d := genotp.NewClockSkewDetector(100)
 	d.EnableAutoAdjust()
 	for i := 0; i < 20; i++ {
 		d.Record(2, 3)

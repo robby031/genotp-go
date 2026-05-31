@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func TestTOTPRFC6238VectorsSHA1(t *testing.T) {
@@ -10,7 +12,7 @@ func TestTOTPRFC6238VectorsSHA1(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTOTP(secret, SHA1, 8, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 8, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
@@ -46,7 +48,7 @@ func TestTOTPRFC6238VectorsSHA256(t *testing.T) {
 		0x31, 0x32,
 	}
 
-	totp, err := NewTOTP(secret, SHA256, 8, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA256, 8, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
@@ -73,7 +75,7 @@ func TestTOTPRFC6238VectorsSHA512(t *testing.T) {
 		0x31, 0x32,
 	}
 
-	totp, err := NewTOTP(secret, SHA512, 8, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA512, 8, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
@@ -94,7 +96,7 @@ func TestTOTPGeneration(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTOTP(secret, SHA1, 6, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
@@ -116,7 +118,7 @@ func TestTOTPVerify(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTOTP(secret, SHA1, 6, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
@@ -142,7 +144,7 @@ func TestTOTPVerifyWithWindow(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTOTP(secret, SHA1, 6, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
@@ -181,13 +183,13 @@ func TestTOTPVerifyWithWindow(t *testing.T) {
 func TestTOTPInvalidDigits(t *testing.T) {
 	secret := []byte{0x31, 0x32, 0x33, 0x34, 0x35}
 
-	_, err := NewTOTP(secret, SHA1, 5, 30)
-	if err != ErrInvalidDigits {
+	_, err := genotp.NewTOTP(secret, genotp.SHA1, 5, 30)
+	if err != genotp.ErrInvalidDigits {
 		t.Errorf("Expected ErrInvalidDigits, got %v", err)
 	}
 
-	_, err = NewTOTP(secret, SHA1, 9, 30)
-	if err != ErrInvalidDigits {
+	_, err = genotp.NewTOTP(secret, genotp.SHA1, 9, 30)
+	if err != genotp.ErrInvalidDigits {
 		t.Errorf("Expected ErrInvalidDigits, got %v", err)
 	}
 }
@@ -195,8 +197,8 @@ func TestTOTPInvalidDigits(t *testing.T) {
 func TestTOTPInvalidPeriod(t *testing.T) {
 	secret := []byte{0x31, 0x32, 0x33, 0x34, 0x35}
 
-	_, err := NewTOTP(secret, SHA1, 6, 0)
-	if err != ErrInvalidPeriod {
+	_, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 0)
+	if err != genotp.ErrInvalidPeriod {
 		t.Errorf("Expected ErrInvalidPeriod, got %v", err)
 	}
 }
@@ -204,8 +206,8 @@ func TestTOTPInvalidPeriod(t *testing.T) {
 func TestTOTPInvalidSecret(t *testing.T) {
 	secret := []byte{}
 
-	_, err := NewTOTP(secret, SHA1, 6, 30)
-	if err != ErrInvalidSecret {
+	_, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30)
+	if err != genotp.ErrInvalidSecret {
 		t.Errorf("Expected ErrInvalidSecret, got %v", err)
 	}
 }
@@ -216,12 +218,12 @@ func TestTOTPBoundEmptyContext(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTOTP(secret, SHA1, 8, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 8, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
 
-	empty := NewOtpContext()
+	empty := genotp.NewOtpContext()
 	times := []uint64{59, 1111111109, 1234567890}
 
 	for _, timeVal := range times {
@@ -245,13 +247,13 @@ func TestTOTPBoundDifferentContexts(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTOTP(secret, SHA1, 6, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
 
-	ctx1 := NewOtpContextBuilder().IP("10.0.0.1").Build()
-	ctx2 := NewOtpContextBuilder().IP("10.0.0.2").Build()
+	ctx1 := genotp.NewOtpContextBuilder().IP("10.0.0.1").Build()
+	ctx2 := genotp.NewOtpContextBuilder().IP("10.0.0.2").Build()
 
 	timeVal := uint64(1234567890)
 	code1, err := totp.GenerateBound(ctx1, &timeVal)
@@ -275,12 +277,12 @@ func TestTOTPVerifyBound(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTOTP(secret, SHA1, 6, 30)
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30)
 	if err != nil {
 		t.Fatalf("Failed to create TOTP: %v", err)
 	}
 
-	ctx := NewOtpContextBuilder().Session("s1").Build()
+	ctx := genotp.NewOtpContextBuilder().Session("s1").Build()
 	timeVal := uint64(60)
 	code, err := totp.GenerateBound(ctx, &timeVal)
 	if err != nil {

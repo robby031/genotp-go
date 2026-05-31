@@ -1,8 +1,10 @@
-package genotp
+package genotp_test
 
 import (
 	"encoding/binary"
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func FuzzTOTP(f *testing.F) {
@@ -25,16 +27,16 @@ func FuzzTOTP(f *testing.F) {
 			time = binary.BigEndian.Uint64(counterBytes)
 		}
 
-		if totp, err := NewTOTP(secret, SHA1, 6, 30); err == nil {
+		if totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30); err == nil {
 			_, _ = totp.Generate(&time)
 			_, _ = totp.Verify("123456", &time, 1)
 		}
 
-		if totp, err := NewTOTP(secret, SHA256, 6, 30); err == nil {
+		if totp, err := genotp.NewTOTP(secret, genotp.SHA256, 6, 30); err == nil {
 			_, _ = totp.Generate(&time)
 		}
 
-		if totp, err := NewTOTP(secret, SHA512, 6, 30); err == nil {
+		if totp, err := genotp.NewTOTP(secret, genotp.SHA512, 6, 30); err == nil {
 			_, _ = totp.Generate(&time)
 		}
 	})

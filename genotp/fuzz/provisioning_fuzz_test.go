@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func FuzzProvisioning(f *testing.F) {
@@ -18,7 +20,7 @@ func FuzzProvisioning(f *testing.F) {
 		}
 
 		secret := data[0:20]
-		secretB32 := EncodeBase32(secret)
+		secretB32 := genotp.EncodeBase32(secret)
 
 		var label string
 		if len(data) > 20 {
@@ -27,16 +29,16 @@ func FuzzProvisioning(f *testing.F) {
 			label = "service:user@example.com"
 		}
 
-		_ = NewOtpAuthUri(TotpType, label, secretB32).
+		_ = genotp.NewOtpAuthUri(genotp.TotpType, label, secretB32).
 			Issuer("Service").
-			Algorithm(SHA1).
+			Algorithm(genotp.SHA1).
 			Digits(6).
 			Period(30).
 			Build()
 
-		_ = NewOtpAuthUri(HotpType, label, secretB32).
+		_ = genotp.NewOtpAuthUri(genotp.HotpType, label, secretB32).
 			Issuer("Service").
-			Algorithm(SHA1).
+			Algorithm(genotp.SHA1).
 			Digits(6).
 			Counter(0).
 			Build()

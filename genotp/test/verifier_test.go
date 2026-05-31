@@ -1,11 +1,13 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func TestVerifierReplayProtection(t *testing.T) {
-	verifier := NewVerifier(5)
+	verifier := genotp.NewVerifier(5)
 
 	if !verifier.VerifyWithReplayProtection("123456", "123456") {
 		t.Error("First verification should succeed")
@@ -16,7 +18,7 @@ func TestVerifierReplayProtection(t *testing.T) {
 }
 
 func TestVerifierRateLimiting(t *testing.T) {
-	verifier := NewVerifier(3)
+	verifier := genotp.NewVerifier(3)
 
 	if verifier.IsRateLimited() {
 		t.Error("Should not be rate limited initially")
@@ -32,7 +34,7 @@ func TestVerifierRateLimiting(t *testing.T) {
 }
 
 func TestVerifierResetAttempts(t *testing.T) {
-	verifier := NewVerifier(3)
+	verifier := genotp.NewVerifier(3)
 
 	verifier.VerifyWithReplayProtection("wrong", "123456")
 	verifier.VerifyWithReplayProtection("wrong", "123456")
@@ -44,7 +46,7 @@ func TestVerifierResetAttempts(t *testing.T) {
 }
 
 func TestVerifierClearUsedCodes(t *testing.T) {
-	verifier := NewVerifier(5)
+	verifier := genotp.NewVerifier(5)
 
 	verifier.VerifyWithReplayProtection("123456", "123456")
 	verifier.ClearUsedCodes()
@@ -55,8 +57,8 @@ func TestVerifierClearUsedCodes(t *testing.T) {
 }
 
 func TestVerifierWithContext(t *testing.T) {
-	verifier := NewVerifier(5)
-	ctx := NewOtpContextBuilder().Session("s1").IP("10.0.0.1").Build()
+	verifier := genotp.NewVerifier(5)
+	ctx := genotp.NewOtpContextBuilder().Session("s1").IP("10.0.0.1").Build()
 
 	if !verifier.VerifyWithContext("123456", "123456", ctx, ctx) {
 		t.Error("Verification with matching context should succeed")
@@ -67,9 +69,9 @@ func TestVerifierWithContext(t *testing.T) {
 }
 
 func TestVerifierPerContextReplayIsolation(t *testing.T) {
-	verifier := NewVerifier(10)
-	ctxA := NewOtpContextBuilder().Session("sess-A").Build()
-	ctxB := NewOtpContextBuilder().Session("sess-B").Build()
+	verifier := genotp.NewVerifier(10)
+	ctxA := genotp.NewOtpContextBuilder().Session("sess-A").Build()
+	ctxB := genotp.NewOtpContextBuilder().Session("sess-B").Build()
 
 	if !verifier.VerifyWithContext("987654", "987654", ctxA, ctxA) {
 		t.Error("First verification for user A should succeed")
@@ -86,7 +88,7 @@ func TestVerifierPerContextReplayIsolation(t *testing.T) {
 }
 
 func TestVerifierEmptyContext(t *testing.T) {
-	v1 := NewVerifier(5)
+	v1 := genotp.NewVerifier(5)
 	if !v1.VerifyWithReplayProtection("111111", "111111") {
 		t.Error("First verification should succeed")
 	}
@@ -94,8 +96,8 @@ func TestVerifierEmptyContext(t *testing.T) {
 		t.Error("Replay should be blocked")
 	}
 
-	v2 := NewVerifier(5)
-	empty := NewOtpContext()
+	v2 := genotp.NewVerifier(5)
+	empty := genotp.NewOtpContext()
 	if !v2.VerifyWithContext("111111", "111111", empty, empty) {
 		t.Error("Verification with empty context should succeed")
 	}

@@ -1,11 +1,13 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func TestOtpContextEmpty(t *testing.T) {
-	ctx := NewOtpContext()
+	ctx := genotp.NewOtpContext()
 	if !ctx.IsEmpty() {
 		t.Error("Empty context should be empty")
 	}
@@ -16,7 +18,7 @@ func TestOtpContextEmpty(t *testing.T) {
 
 func TestOtpContextFromBytes(t *testing.T) {
 	data := []byte{1, 2, 3, 4}
-	ctx := OtpContextFromBytes(data)
+	ctx := genotp.OtpContextFromBytes(data)
 	if ctx.IsEmpty() {
 		t.Error("Context from bytes should not be empty")
 	}
@@ -26,13 +28,13 @@ func TestOtpContextFromBytes(t *testing.T) {
 }
 
 func TestOtpContextBuilderOrder(t *testing.T) {
-	ctx1 := NewOtpContextBuilder().
+	ctx1 := genotp.NewOtpContextBuilder().
 		IP("10.0.0.1").
 		Device("dev123").
 		Session("sess456").
 		Build()
 
-	ctx2 := NewOtpContextBuilder().
+	ctx2 := genotp.NewOtpContextBuilder().
 		Session("sess456").
 		Device("dev123").
 		IP("10.0.0.1").
@@ -44,8 +46,8 @@ func TestOtpContextBuilderOrder(t *testing.T) {
 }
 
 func TestOtpContextBuilderDifferentValues(t *testing.T) {
-	ctx1 := NewOtpContextBuilder().IP("10.0.0.1").Build()
-	ctx2 := NewOtpContextBuilder().IP("10.0.0.2").Build()
+	ctx1 := genotp.NewOtpContextBuilder().IP("10.0.0.1").Build()
+	ctx2 := genotp.NewOtpContextBuilder().IP("10.0.0.2").Build()
 
 	if string(ctx1.Bytes()) == string(ctx2.Bytes()) {
 		t.Error("Different values should produce different bytes")
@@ -53,9 +55,9 @@ func TestOtpContextBuilderDifferentValues(t *testing.T) {
 }
 
 func TestNormalizeOrigin(t *testing.T) {
-	ctx1 := NewOtpContextBuilder().Origin("https://EXAMPLE.com").Build()
-	ctx2 := NewOtpContextBuilder().Origin("https://example.com/").Build()
-	ctx3 := NewOtpContextBuilder().Origin("https://example.com/login?next=/home").Build()
+	ctx1 := genotp.NewOtpContextBuilder().Origin("https://EXAMPLE.com").Build()
+	ctx2 := genotp.NewOtpContextBuilder().Origin("https://example.com/").Build()
+	ctx3 := genotp.NewOtpContextBuilder().Origin("https://example.com/login?next=/home").Build()
 
 	if string(ctx1.Bytes()) != string(ctx2.Bytes()) {
 		t.Error("Origin normalization should handle case and trailing slash")
@@ -66,8 +68,8 @@ func TestNormalizeOrigin(t *testing.T) {
 }
 
 func TestNormalizeOriginWithPort(t *testing.T) {
-	ctx1 := NewOtpContextBuilder().Origin("https://example.com:8443/foo").Build()
-	ctx2 := NewOtpContextBuilder().Origin("https://example.com:8443").Build()
+	ctx1 := genotp.NewOtpContextBuilder().Origin("https://example.com:8443/foo").Build()
+	ctx2 := genotp.NewOtpContextBuilder().Origin("https://example.com:8443").Build()
 
 	if string(ctx1.Bytes()) != string(ctx2.Bytes()) {
 		t.Error("Origin normalization should keep port")
@@ -75,7 +77,7 @@ func TestNormalizeOriginWithPort(t *testing.T) {
 }
 
 func TestOtpContextBuilderCustomField(t *testing.T) {
-	ctx := NewOtpContextBuilder().Custom("test", "value").Build()
+	ctx := genotp.NewOtpContextBuilder().Custom("test", "value").Build()
 	bytes := ctx.Bytes()
 	if len(bytes) == 0 {
 		t.Error("Custom field should add bytes")

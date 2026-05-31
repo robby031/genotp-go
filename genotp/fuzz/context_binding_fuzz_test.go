@@ -1,8 +1,10 @@
-package genotp
+package genotp_test
 
 import (
 	"encoding/binary"
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func FuzzContextBinding(f *testing.F) {
@@ -23,9 +25,9 @@ func FuzzContextBinding(f *testing.F) {
 		copy(counterBytes[4:8], data[20:24])
 		counter := binary.BigEndian.Uint64(counterBytes)
 		ctxBytes := data[24:]
-		ctx := OtpContextFromBytes(ctxBytes)
+		ctx := genotp.OtpContextFromBytes(ctxBytes)
 
-		if hotp, err := NewHOTP(secret, SHA1, 6); err == nil {
+		if hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6); err == nil {
 			if code, err := hotp.GenerateBound(counter, ctx); err == nil {
 				if ok, err := hotp.VerifyBound(code, counter, ctx); err == nil {
 					if !ok {
@@ -35,7 +37,7 @@ func FuzzContextBinding(f *testing.F) {
 			}
 		}
 
-		if totp, err := NewTOTP(secret, SHA1, 6, 30); err == nil {
+		if totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30); err == nil {
 			if code, err := totp.GenerateBound(ctx, &counter); err == nil {
 				if ok, err := totp.VerifyBound(code, ctx, &counter, 0); err == nil {
 					if !ok {
@@ -45,8 +47,8 @@ func FuzzContextBinding(f *testing.F) {
 			}
 		}
 
-		for _, algo := range []Algorithm{SHA256, SHA512} {
-			if totp, err := NewTOTP(secret, algo, 6, 30); err == nil {
+		for _, algo := range []genotp.Algorithm{genotp.SHA256, genotp.SHA512} {
+			if totp, err := genotp.NewTOTP(secret, algo, 6, 30); err == nil {
 				_, _ = totp.GenerateBound(ctx, &counter)
 			}
 		}

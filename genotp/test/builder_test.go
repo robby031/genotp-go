@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func TestHotpBuilder(t *testing.T) {
@@ -10,9 +12,9 @@ func TestHotpBuilder(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHotpBuilder().
+	hotp, err := genotp.NewHotpBuilder().
 		Secret(secret).
-		Algorithm(SHA1).
+		Algorithm(genotp.SHA1).
 		Digits(6).
 		Build()
 
@@ -31,8 +33,8 @@ func TestHotpBuilder(t *testing.T) {
 }
 
 func TestHotpBuilderWithoutSecret(t *testing.T) {
-	_, err := NewHotpBuilder().Build()
-	if err != ErrInvalidSecret {
+	_, err := genotp.NewHotpBuilder().Build()
+	if err != genotp.ErrInvalidSecret {
 		t.Errorf("Expected ErrInvalidSecret, got %v", err)
 	}
 }
@@ -43,9 +45,9 @@ func TestTotpBuilder(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTotpBuilder().
+	totp, err := genotp.NewTotpBuilder().
 		Secret(secret).
-		Algorithm(SHA1).
+		Algorithm(genotp.SHA1).
 		Digits(6).
 		Period(30).
 		Build()
@@ -66,8 +68,8 @@ func TestTotpBuilder(t *testing.T) {
 }
 
 func TestTotpBuilderWithoutSecret(t *testing.T) {
-	_, err := NewTotpBuilder().Build()
-	if err != ErrInvalidSecret {
+	_, err := genotp.NewTotpBuilder().Build()
+	if err != genotp.ErrInvalidSecret {
 		t.Errorf("Expected ErrInvalidSecret, got %v", err)
 	}
 }
@@ -78,7 +80,7 @@ func TestHotpBuilderDefaults(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHotpBuilder().Secret(secret).Build()
+	hotp, err := genotp.NewHotpBuilder().Secret(secret).Build()
 	if err != nil {
 		t.Fatalf("Failed to build HOTP: %v", err)
 	}
@@ -99,7 +101,7 @@ func TestTotpBuilderDefaults(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	totp, err := NewTotpBuilder().Secret(secret).Build()
+	totp, err := genotp.NewTotpBuilder().Secret(secret).Build()
 	if err != nil {
 		t.Fatalf("Failed to build TOTP: %v", err)
 	}

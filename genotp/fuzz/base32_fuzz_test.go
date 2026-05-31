@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func FuzzBase32EncodeDecode(f *testing.F) {
@@ -12,8 +14,8 @@ func FuzzBase32EncodeDecode(f *testing.F) {
 			return
 		}
 
-		encoded := EncodeBase32(data)
-		decoded, err := DecodeBase32(encoded)
+		encoded := genotp.EncodeBase32(data)
+		decoded, err := genotp.DecodeBase32(encoded)
 		if err == nil {
 			if len(decoded) < len(data) {
 				t.Errorf("Decoded length %d < original length %d", len(decoded), len(data))
@@ -28,9 +30,9 @@ func FuzzBase32EncodeDecode(f *testing.F) {
 		}
 
 		strData := string(data)
-		decoded2, err := DecodeBase32(strData)
+		decoded2, err := genotp.DecodeBase32(strData)
 		if err == nil {
-			_ = EncodeBase32(decoded2)
+			_ = genotp.EncodeBase32(decoded2)
 		}
 	})
 }

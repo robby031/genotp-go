@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func TestHOTPRFC4226Vectors(t *testing.T) {
@@ -10,7 +12,7 @@ func TestHOTPRFC4226Vectors(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHOTP(secret, SHA1, 6)
+	hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP: %v", err)
 	}
@@ -37,7 +39,7 @@ func TestHOTPGeneration(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHOTP(secret, SHA1, 6)
+	hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP: %v", err)
 	}
@@ -58,7 +60,7 @@ func TestHOTPVerify(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHOTP(secret, SHA1, 6)
+	hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP: %v", err)
 	}
@@ -88,13 +90,13 @@ func TestHOTPVerify(t *testing.T) {
 func TestHOTPInvalidDigits(t *testing.T) {
 	secret := []byte{0x31, 0x32, 0x33, 0x34, 0x35}
 
-	_, err := NewHOTP(secret, SHA1, 5)
-	if err != ErrInvalidDigits {
+	_, err := genotp.NewHOTP(secret, genotp.SHA1, 5)
+	if err != genotp.ErrInvalidDigits {
 		t.Errorf("Expected ErrInvalidDigits, got %v", err)
 	}
 
-	_, err = NewHOTP(secret, SHA1, 9)
-	if err != ErrInvalidDigits {
+	_, err = genotp.NewHOTP(secret, genotp.SHA1, 9)
+	if err != genotp.ErrInvalidDigits {
 		t.Errorf("Expected ErrInvalidDigits, got %v", err)
 	}
 }
@@ -102,8 +104,8 @@ func TestHOTPInvalidDigits(t *testing.T) {
 func TestHOTPInvalidSecret(t *testing.T) {
 	secret := []byte{}
 
-	_, err := NewHOTP(secret, SHA1, 6)
-	if err != ErrInvalidSecret {
+	_, err := genotp.NewHOTP(secret, genotp.SHA1, 6)
+	if err != genotp.ErrInvalidSecret {
 		t.Errorf("Expected ErrInvalidSecret, got %v", err)
 	}
 }
@@ -114,7 +116,7 @@ func TestHOTPVerifyWithResync(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHOTP(secret, SHA1, 6)
+	hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP: %v", err)
 	}
@@ -148,7 +150,7 @@ func TestHOTPDifferentAlgorithms(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp256, err := NewHOTP(secret, SHA256, 6)
+	hotp256, err := genotp.NewHOTP(secret, genotp.SHA256, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP with SHA256: %v", err)
 	}
@@ -160,7 +162,7 @@ func TestHOTPDifferentAlgorithms(t *testing.T) {
 		t.Errorf("Expected code length 6, got %d", len(code256))
 	}
 
-	hotp512, err := NewHOTP(secret, SHA512, 6)
+	hotp512, err := genotp.NewHOTP(secret, genotp.SHA512, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP with SHA512: %v", err)
 	}
@@ -179,12 +181,12 @@ func TestHOTPBoundEmptyContext(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHOTP(secret, SHA1, 6)
+	hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP: %v", err)
 	}
 
-	empty := NewOtpContext()
+	empty := genotp.NewOtpContext()
 	for c := uint64(0); c < 10; c++ {
 		standard, err := hotp.Generate(c)
 		if err != nil {
@@ -206,13 +208,13 @@ func TestHOTPBoundDifferentContexts(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	hotp, err := NewHOTP(secret, SHA1, 6)
+	hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6)
 	if err != nil {
 		t.Fatalf("Failed to create HOTP: %v", err)
 	}
 
-	ctx1 := NewOtpContextBuilder().Session("login-123").Build()
-	ctx2 := NewOtpContextBuilder().Session("login-999").Build()
+	ctx1 := genotp.NewOtpContextBuilder().Session("login-123").Build()
+	ctx2 := genotp.NewOtpContextBuilder().Session("login-999").Build()
 
 	code, err := hotp.GenerateBound(42, ctx1)
 	if err != nil {

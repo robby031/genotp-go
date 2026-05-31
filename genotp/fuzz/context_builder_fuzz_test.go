@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func pickStr(data []byte, cur *int) string {
@@ -38,27 +40,27 @@ func FuzzContextBuilder(f *testing.F) {
 		session := pickStr(data, &cur)
 		origin := pickStr(data, &cur)
 
-		a := NewOtpContextBuilder().IP(ip).Device(device).Session(session).Origin(origin).Build()
-		b := NewOtpContextBuilder().Session(session).Origin(origin).IP(ip).Device(device).Build()
+		a := genotp.NewOtpContextBuilder().IP(ip).Device(device).Session(session).Origin(origin).Build()
+		b := genotp.NewOtpContextBuilder().Session(session).Origin(origin).IP(ip).Device(device).Build()
 
 		if string(a.Bytes()) != string(b.Bytes()) {
 			t.Error("setter order affects output")
 		}
 
 		altIP := ip + "x"
-		c := NewOtpContextBuilder().IP(altIP).Device(device).Session(session).Origin(origin).Build()
+		c := genotp.NewOtpContextBuilder().IP(altIP).Device(device).Session(session).Origin(origin).Build()
 
 		if string(a.Bytes()) == string(c.Bytes()) {
 			t.Error("changed IP did not produce different output")
 		}
 
-		empty := NewOtpContext()
+		empty := genotp.NewOtpContext()
 		if !empty.IsEmpty() {
 			t.Error("empty context should be empty")
 		}
 
-		withCustom := NewOtpContextBuilder().Custom("ip", "foo").Build()
-		withBuiltin := NewOtpContextBuilder().IP("foo").Build()
+		withCustom := genotp.NewOtpContextBuilder().Custom("ip", "foo").Build()
+		withBuiltin := genotp.NewOtpContextBuilder().IP("foo").Build()
 
 		if string(withCustom.Bytes()) == string(withBuiltin.Bytes()) {
 			t.Error("custom() can simulate built-in field - x- prefix failed")

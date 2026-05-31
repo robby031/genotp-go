@@ -1,7 +1,9 @@
-package genotp
+package genotp_test
 
 import (
 	"testing"
+
+	"github.com/robby031/genotp-go/genotp"
 )
 
 func TestGenerateHotpDefault(t *testing.T) {
@@ -10,7 +12,7 @@ func TestGenerateHotpDefault(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := GenerateHotpDefault(secret, 0)
+	code, err := genotp.GenerateHotpDefault(secret, 0)
 	if err != nil {
 		t.Fatalf("Failed to generate HOTP: %v", err)
 	}
@@ -26,7 +28,7 @@ func TestGenerateTotpDefault(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := GenerateTotpDefault(secret)
+	code, err := genotp.GenerateTotpDefault(secret)
 	if err != nil {
 		t.Fatalf("Failed to generate TOTP: %v", err)
 	}
@@ -42,12 +44,12 @@ func TestVerifyHotpDefault(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := GenerateHotpDefault(secret, 0)
+	code, err := genotp.GenerateHotpDefault(secret, 0)
 	if err != nil {
 		t.Fatalf("Failed to generate HOTP: %v", err)
 	}
 
-	valid, err := VerifyHotpDefault(secret, code, 0)
+	valid, err := genotp.VerifyHotpDefault(secret, code, 0)
 	if err != nil {
 		t.Fatalf("Failed to verify HOTP: %v", err)
 	}
@@ -62,12 +64,12 @@ func TestVerifyTotpDefault(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := GenerateTotpDefault(secret)
+	code, err := genotp.GenerateTotpDefault(secret)
 	if err != nil {
 		t.Fatalf("Failed to generate TOTP: %v", err)
 	}
 
-	valid, err := VerifyTotpDefault(secret, code)
+	valid, err := genotp.VerifyTotpDefault(secret, code)
 	if err != nil {
 		t.Fatalf("Failed to verify TOTP: %v", err)
 	}
@@ -77,12 +79,12 @@ func TestVerifyTotpDefault(t *testing.T) {
 }
 
 func TestCreateSecret(t *testing.T) {
-	secret, err := CreateSecret()
+	secret, err := genotp.CreateSecret()
 	if err != nil {
 		t.Fatalf("Failed to create secret: %v", err)
 	}
 
-	if len(secret) != DefaultSecretBytes {
-		t.Errorf("Expected secret length %d, got %d", DefaultSecretBytes, len(secret))
+	if len(secret) != genotp.DefaultSecretBytes {
+		t.Errorf("Expected secret length %d, got %d", genotp.DefaultSecretBytes, len(secret))
 	}
 }
