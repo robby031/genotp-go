@@ -6,13 +6,13 @@ import (
 	"github.com/robby031/genotp-go"
 )
 
-func TestGenerateHotpDefault(t *testing.T) {
+func TestGenHotpDefault(t *testing.T) {
 	secret := []byte{
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := genotp.GenerateHotpDefault(secret, 0)
+	code, err := genotp.GenHotpDefault(secret, 0)
 	if err != nil {
 		t.Fatalf("Failed to generate HOTP: %v", err)
 	}
@@ -22,13 +22,13 @@ func TestGenerateHotpDefault(t *testing.T) {
 	}
 }
 
-func TestGenerateTotpDefault(t *testing.T) {
+func TestGenTotpDefault(t *testing.T) {
 	secret := []byte{
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := genotp.GenerateTotpDefault(secret)
+	code, err := genotp.GenTotpDefault(secret)
 	if err != nil {
 		t.Fatalf("Failed to generate TOTP: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestVerifyHotpDefault(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := genotp.GenerateHotpDefault(secret, 0)
+	code, err := genotp.GenHotpDefault(secret, 0)
 	if err != nil {
 		t.Fatalf("Failed to generate HOTP: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestVerifyTotpDefault(t *testing.T) {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30,
 	}
 
-	code, err := genotp.GenerateTotpDefault(secret)
+	code, err := genotp.GenTotpDefault(secret)
 	if err != nil {
 		t.Fatalf("Failed to generate TOTP: %v", err)
 	}

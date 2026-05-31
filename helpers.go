@@ -1,6 +1,6 @@
 package genotp
 
-func GenerateHotpDefault(secret []byte, counter uint64) (string, error) {
+func GenHotpDefault(secret []byte, counter uint64) (string, error) {
 	hotp, err := NewHOTP(secret, SHA1, 6)
 	if err != nil {
 		return "", err
@@ -8,7 +8,7 @@ func GenerateHotpDefault(secret []byte, counter uint64) (string, error) {
 	return hotp.Generate(counter)
 }
 
-func GenerateTotpDefault(secret []byte) (string, error) {
+func GenTotpDefault(secret []byte) (string, error) {
 	totp, err := NewTOTP(secret, SHA1, 6, 30)
 	if err != nil {
 		return "", err

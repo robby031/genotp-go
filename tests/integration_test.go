@@ -68,7 +68,7 @@ func TestTOTPIntegration(t *testing.T) {
 }
 
 func TestKeyGenerationIntegration(t *testing.T) {
-	kg := &genotp.KeyGenerator{}
+	kg := &genotp.KeyGen{}
 
 	secret, err := kg.GenerateDefaultSecret()
 	if err != nil {

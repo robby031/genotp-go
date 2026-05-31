@@ -13,8 +13,8 @@ func TestClockSkewDetectorInsufficientData(t *testing.T) {
 		d.Record(int64(i), 1)
 	}
 	r := d.Report()
-	if r.Recommendation != genotp.InsufficientData {
-		t.Errorf("Expected InsufficientData, got %v", r.Recommendation)
+	if r.Recommend != genotp.InsufficientData {
+		t.Errorf("Expected InsufficientData, got %v", r.Recommend)
 	}
 }
 
@@ -24,8 +24,8 @@ func TestClockSkewDetectorNoDrift(t *testing.T) {
 		d.Record(0, 1)
 	}
 	r := d.Report()
-	if r.Recommendation != genotp.NoActionNeeded {
-		t.Errorf("Expected NoActionNeeded, got %v", r.Recommendation)
+	if r.Recommend != genotp.NoActionNeeded {
+		t.Errorf("Expected NoActionNeeded, got %v", r.Recommend)
 	}
 	if r.NonZeroCount != 0 {
 		t.Errorf("Expected NonZeroCount=0, got %d", r.NonZeroCount)
@@ -41,8 +41,8 @@ func TestClockSkewDetectorConsistentDrift(t *testing.T) {
 		d.Record(1, 2)
 	}
 	r := d.Report()
-	if r.Recommendation != genotp.ConsistentDrift {
-		t.Errorf("Expected ConsistentDrift, got %v", r.Recommendation)
+	if r.Recommend != genotp.ConsistentDrift {
+		t.Errorf("Expected ConsistentDrift, got %v", r.Recommend)
 	}
 	if math.Abs(r.MeanOffset-1.0) > 0.01 {
 		t.Errorf("Expected MeanOffset≈1.0, got %f", r.MeanOffset)
@@ -58,8 +58,8 @@ func TestClockSkewDetectorEdgeHits(t *testing.T) {
 		d.Record(-1, 1)
 	}
 	r := d.Report()
-	if r.Recommendation != genotp.WidenWindowOrCheckNtp {
-		t.Errorf("Expected WidenWindowOrCheckNtp, got %v", r.Recommendation)
+	if r.Recommend != genotp.WidenWindowOrCheckNtp {
+		t.Errorf("Expected WidenWindowOrCheckNtp, got %v", r.Recommend)
 	}
 	if r.EdgeHitRatio < 0.2 {
 		t.Errorf("Expected EdgeHitRatio≥0.2, got %f", r.EdgeHitRatio)

@@ -192,7 +192,7 @@ func TestHOTPBoundEmptyContext(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to generate standard code: %v", err)
 		}
-		bound, err := hotp.GenerateBound(c, empty)
+		bound, err := hotp.GenBound(c, empty)
 		if err != nil {
 			t.Fatalf("Failed to generate bound code: %v", err)
 		}
@@ -216,7 +216,7 @@ func TestHOTPBoundDifferentContexts(t *testing.T) {
 	ctx1 := genotp.NewOtpContextBuilder().Session("login-123").Build()
 	ctx2 := genotp.NewOtpContextBuilder().Session("login-999").Build()
 
-	code, err := hotp.GenerateBound(42, ctx1)
+	code, err := hotp.GenBound(42, ctx1)
 	if err != nil {
 		t.Fatalf("Failed to generate bound code: %v", err)
 	}

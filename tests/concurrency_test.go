@@ -84,8 +84,8 @@ func TestHOTPConcurrentVerification(t *testing.T) {
 	wg.Wait()
 }
 
-// 100 goroutine × 50 percobaan verify code yang sama dengan context yang
-// sama. HARUS hanya 1 yang sukses; sisanya ditolak karena replay.
+// 100 goroutine x 50 percobaan verify code yang sama dengan context yang
+// sama. HARUS hanya 1 yang sukses sisanya ditolak karena replay.
 func TestVerifierReplayUnderExtremeContention(t *testing.T) {
 	v := genotp.NewVerifier(1_000_000)
 
@@ -237,9 +237,9 @@ func TestTOTPBoundConcurrentVerify(t *testing.T) {
 				Build()
 			for tt := uint64(1_700_000_000); tt < 1_700_000_000+100*30; tt += 30 {
 				ttCopy := tt
-				code, err := totp.GenerateBound(ctx, &ttCopy)
+				code, err := totp.GenBound(ctx, &ttCopy)
 				if err != nil {
-					t.Errorf("GenerateBound: %v", err)
+					t.Errorf("GenBound: %v", err)
 					return
 				}
 				ok, err := totp.VerifyBound(code, ctx, &ttCopy, 0)

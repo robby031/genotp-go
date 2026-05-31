@@ -6,18 +6,29 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/binary"
-	"fmt"
 	"hash"
 	"math"
+	"sync"
 )
 
 const contextBindTag = "genotp-ctx-v1\x00"
+
+var contextBindTagBytes = []byte(contextBindTag)
+
+const maxHMACSize = 64
+
+type macBuf struct {
+	mac     hash.Hash
+	counter [8]byte
+	sum     [maxHMACSize]byte
+}
 
 type HOTP struct {
 	secret    []byte
 	algorithm Algorithm
 	digits    uint32
 	modValue  uint32
+	macPool   sync.Pool
 }
 
 func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
@@ -29,48 +40,65 @@ func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
 		return nil, ErrInvalidSecret
 	}
 
-	modValue := uint32(math.Pow10(int(digits)))
+	hashFn, ok := hashFuncFor(algorithm)
+	if !ok {
+		return nil, ErrInvalidAlgorithm
+	}
 
-	return &HOTP{
+	h := &HOTP{
 		secret:    secret,
 		algorithm: algorithm,
 		digits:    digits,
-		modValue:  modValue,
-	}, nil
+		modValue:  uint32(math.Pow10(int(digits))),
+	}
+
+	h.macPool.New = func() any {
+		return &macBuf{mac: hmac.New(hashFn, h.secret)}
+	}
+	return h, nil
+}
+
+func hashFuncFor(algorithm Algorithm) (func() hash.Hash, bool) {
+	switch algorithm {
+	case SHA1:
+		return sha1.New, true
+	case SHA256:
+		return sha256.New, true
+	case SHA512:
+		return sha512.New, true
+	default:
+		return nil, false
+	}
 }
 
 func (h *HOTP) Generate(counter uint64) (string, error) {
-	hmacBytes, err := h.computeHMAC(counter, nil)
-	if err != nil {
-		return "", err
-	}
-
-	code := h.dynamicTruncate(hmacBytes)
-	return fmt.Sprintf("%0*d", h.digits, code), nil
+	var buf [8]byte
+	out := h.genDigits(buf[:], counter, nil)
+	return string(out), nil
 }
 
 func (h *HOTP) Verify(code string, counter uint64) (bool, error) {
-	expected, err := h.Generate(counter)
-	if err != nil {
-		return false, err
-	}
+	var userBuf [8]byte
+	userBytes := userBuf[:copy(userBuf[:], code)]
 
-	return constantTimeEq(code, expected), nil
+	var expectedBuf [8]byte
+	expected := h.genDigits(expectedBuf[:], counter, nil)
+	return constTimeEqBytes(userBytes, expected), nil
 }
 
 func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (uint64, bool, error) {
+	var userBuf [8]byte
+	userBytes := userBuf[:copy(userBuf[:], code)]
+
 	for i := uint64(0); i <= lookAhead; i++ {
 		testCounter := counter + i
 		if testCounter < counter {
 			break
 		}
 
-		expected, err := h.Generate(testCounter)
-		if err != nil {
-			return 0, false, err
-		}
-
-		if constantTimeEq(code, expected) {
+		var expectedBuf [8]byte
+		expected := h.genDigits(expectedBuf[:], testCounter, nil)
+		if constTimeEqBytes(userBytes, expected) {
 			return testCounter, true, nil
 		}
 	}
@@ -78,66 +106,65 @@ func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (
 	return 0, false, nil
 }
 
-func (h *HOTP) GenerateBound(counter uint64, context *OtpContext) (string, error) {
-	ctxBytes := []byte{}
+func (h *HOTP) GenBound(counter uint64, context *OtpContext) (string, error) {
+	var ctxBytes []byte
 	if context != nil {
 		ctxBytes = context.Bytes()
 	}
-
-	hmacBytes, err := h.computeHMAC(counter, ctxBytes)
-	if err != nil {
-		return "", err
-	}
-
-	code := h.dynamicTruncate(hmacBytes)
-	return fmt.Sprintf("%0*d", h.digits, code), nil
+	var buf [8]byte
+	out := h.genDigits(buf[:], counter, ctxBytes)
+	return string(out), nil
 }
 
 func (h *HOTP) VerifyBound(code string, counter uint64, context *OtpContext) (bool, error) {
-	expected, err := h.GenerateBound(counter, context)
-	if err != nil {
-		return false, err
+	var ctxBytes []byte
+	if context != nil {
+		ctxBytes = context.Bytes()
 	}
+	var userBuf [8]byte
+	userBytes := userBuf[:copy(userBuf[:], code)]
 
-	return constantTimeEq(code, expected), nil
+	var expectedBuf [8]byte
+	expected := h.genDigits(expectedBuf[:], counter, ctxBytes)
+	return constTimeEqBytes(userBytes, expected), nil
 }
 
-func (h *HOTP) computeHMAC(counter uint64, context []byte) ([]byte, error) {
-	counterBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(counterBytes, counter)
+func (h *HOTP) genDigits(dst []byte, counter uint64, context []byte) []byte {
+	code := h.computeTruncated(counter, context)
+	return formatOTP(dst, code, h.digits)
+}
 
-	var mac hash.Hash
-
-	switch h.algorithm {
-	case SHA1:
-		mac = hmac.New(sha1.New, h.secret)
-	case SHA256:
-		mac = hmac.New(sha256.New, h.secret)
-	case SHA512:
-		mac = hmac.New(sha512.New, h.secret)
-	default:
-		return nil, ErrInvalidSecret
-	}
-
-	mac.Write(counterBytes)
-
+func (h *HOTP) computeTruncated(counter uint64, context []byte) uint32 {
+	mb := h.macPool.Get().(*macBuf)
+	binary.BigEndian.PutUint64(mb.counter[:], counter)
+	mb.mac.Reset()
+	mb.mac.Write(mb.counter[:])
 	if len(context) > 0 {
-		mac.Write([]byte(contextBindTag))
-		mac.Write(context)
+		mb.mac.Write(contextBindTagBytes)
+		mb.mac.Write(context)
 	}
-
-	return mac.Sum(nil), nil
+	hmacBytes := mb.mac.Sum(mb.sum[:0])
+	truncated := dynamicTruncate(hmacBytes, h.modValue)
+	h.macPool.Put(mb)
+	return truncated
 }
 
-func (h *HOTP) dynamicTruncate(hmac []byte) uint32 {
-	offset := int(hmac[len(hmac)-1] & 0x0f)
+func dynamicTruncate(hmacBytes []byte, modValue uint32) uint32 {
+	offset := int(hmacBytes[len(hmacBytes)-1] & 0x0f)
+	binary := ((uint32(hmacBytes[offset]) & 0x7f) << 24) |
+		(uint32(hmacBytes[offset+1]) << 16) |
+		(uint32(hmacBytes[offset+2]) << 8) |
+		uint32(hmacBytes[offset+3])
+	return binary % modValue
+}
 
-	binary := ((uint32(hmac[offset]) & 0x7f) << 24) |
-		(uint32(hmac[offset+1]) << 16) |
-		(uint32(hmac[offset+2]) << 8) |
-		uint32(hmac[offset+3])
-
-	return binary % h.modValue
+func formatOTP(dst []byte, code, digits uint32) []byte {
+	d := int(digits)
+	for i := d - 1; i >= 0; i-- {
+		dst[i] = byte('0' + code%10)
+		code /= 10
+	}
+	return dst[:d]
 }
 
 func (h *HOTP) ClearSecret() {

@@ -34,7 +34,7 @@ import (
 
 func main() {
     secret, _ := genotp.CreateSecret()
-    code, _ := genotp.GenerateTotpDefault(secret)
+    code, _ := genotp.GenTotpDefault(secret)
     valid, _ := genotp.VerifyTotpDefault(secret, code)
     
     fmt.Printf("Code: %s, Valid: %v\n", code, valid)
@@ -81,7 +81,7 @@ ctx := genotp.NewOtpContextBuilder().
     IP("hash_of_user_ip").
     Build()
 
-code, _ := hotp.GenerateBound(counter, ctx)
+code, _ := hotp.GenBound(counter, ctx)
 // Send `code` via any channel (SMS, email, WhatsApp, Telegram, push notif, ...).
 
 // When user submits:
@@ -124,7 +124,7 @@ Two modes:
 Track and compensate for clock drift between client and server:
 - Passive mode: only reports statistics
 - Active mode: automatically adjusts verification window
-- Recommendations for window sizing or NTP sync
+- Recommends for window sizing or NTP sync
 
 ### Replay Protection
 
@@ -147,8 +147,8 @@ Prevent OTP code reuse with:
 ### Helper Functions
 
 - `CreateSecret()`: Generate a random 160-bit secret
-- `GenerateHotpDefault()`: Generate HOTP with default parameters
-- `GenerateTotpDefault()`: Generate TOTP with default parameters
+- `GenHotpDefault()`: Generate HOTP with default parameters
+- `GenTotpDefault()`: Generate TOTP with default parameters
 - `VerifyHotpDefault()`: Verify HOTP with default parameters
 - `VerifyTotpDefault()`: Verify TOTP with default parameters
 - `EncodeBase32()`: Encode bytes to Base32

@@ -1,4 +1,4 @@
-.PHONY: all build test fuzz fuzz-clean clean clean-all help
+.PHONY: all build test bench bench-short fuzz fuzz-clean clean clean-all help
 
 all: build test fuzz
 
@@ -6,6 +6,8 @@ help:
 	@echo "Available make targets:"
 	@echo "  make build       Build all code"
 	@echo "  make test        Run all tests"
+	@echo "  make bench       Run all benchmarks with -benchmem"
+	@echo "  make bench-short Run benchmarks with short -benchtime (smoke)"
 	@echo "  make fuzz        Run all fuzzers"
 	@echo "  make fuzz-clean  Clean fuzz artifacts"
 	@echo "  make clean       Clean build and test artifacts"
@@ -17,6 +19,12 @@ build:
 
 test:
 	go test -v ./...
+
+bench:
+	go test ./tests -run=^$$ -bench=. -benchmem
+
+bench-short:
+	go test ./tests -run=^$$ -bench=. -benchmem -benchtime=200ms
 
 fuzz:
 	@for f in $$(grep -h -o 'func \(Fuzz[^( ]*\)' fuzz/*_fuzz_test.go | sed 's/func //' | sort | uniq); do \

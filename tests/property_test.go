@@ -119,7 +119,7 @@ func TestPropTOTPVerifyCorrectCode(t *testing.T) {
 
 func TestPropKeyGenerateAlwaysCorrectLength(t *testing.T) {
 	r := propRng(t)
-	kg := &genotp.KeyGenerator{}
+	kg := &genotp.KeyGen{}
 	for i := 0; i < propIters; i++ {
 		byteLen := 16 + r.Intn(49) // 16..=64
 		bitLen := byteLen * 8
@@ -144,9 +144,9 @@ func TestPropTOTPBoundRoundtrip(t *testing.T) {
 			t.Fatalf("iter %d NewTOTP: %v", i, err)
 		}
 		ctx := genotp.OtpContextFromBytes(ctxBytes)
-		code, err := totp.GenerateBound(ctx, &tt)
+		code, err := totp.GenBound(ctx, &tt)
 		if err != nil {
-			t.Fatalf("iter %d GenerateBound: %v", i, err)
+			t.Fatalf("iter %d GenBound: %v", i, err)
 		}
 		ok, err := totp.VerifyBound(code, ctx, &tt, 0)
 		if err != nil || !ok {
@@ -171,9 +171,9 @@ func TestPropTOTPBoundDifferentContextsReject(t *testing.T) {
 		}
 		oa := genotp.OtpContextFromBytes(ctxA)
 		ob := genotp.OtpContextFromBytes(ctxB)
-		code, err := totp.GenerateBound(oa, &tt)
+		code, err := totp.GenBound(oa, &tt)
 		if err != nil {
-			t.Fatalf("iter %d GenerateBound: %v", i, err)
+			t.Fatalf("iter %d GenBound: %v", i, err)
 		}
 		ok, _ := totp.VerifyBound(code, ob, &tt, 0)
 		if ok {
@@ -196,9 +196,9 @@ func TestPropEmptyContextEqualsStandardTOTP(t *testing.T) {
 		if err != nil {
 			t.Fatalf("iter %d Generate: %v", i, err)
 		}
-		bound, err := totp.GenerateBound(empty, &tt)
+		bound, err := totp.GenBound(empty, &tt)
 		if err != nil {
-			t.Fatalf("iter %d GenerateBound: %v", i, err)
+			t.Fatalf("iter %d GenBound: %v", i, err)
 		}
 		if standard != bound {
 			t.Fatalf("iter %d standard=%q bound=%q", i, standard, bound)
@@ -217,9 +217,9 @@ func TestPropHOTPBoundRoundtrip(t *testing.T) {
 			t.Fatalf("iter %d NewHOTP: %v", i, err)
 		}
 		ctx := genotp.OtpContextFromBytes(ctxBytes)
-		code, err := hotp.GenerateBound(counter, ctx)
+		code, err := hotp.GenBound(counter, ctx)
 		if err != nil {
-			t.Fatalf("iter %d GenerateBound: %v", i, err)
+			t.Fatalf("iter %d GenBound: %v", i, err)
 		}
 		ok, err := hotp.VerifyBound(code, counter, ctx)
 		if err != nil || !ok {
@@ -244,9 +244,9 @@ func TestPropHOTPBoundDifferentContextsReject(t *testing.T) {
 		}
 		oa := genotp.OtpContextFromBytes(ctxA)
 		ob := genotp.OtpContextFromBytes(ctxB)
-		code, err := hotp.GenerateBound(counter, oa)
+		code, err := hotp.GenBound(counter, oa)
 		if err != nil {
-			t.Fatalf("iter %d GenerateBound: %v", i, err)
+			t.Fatalf("iter %d GenBound: %v", i, err)
 		}
 		ok, _ := hotp.VerifyBound(code, counter, ob)
 		if ok {
@@ -270,9 +270,9 @@ func TestPropTOTPBoundWindowAcceptsWithinRange(t *testing.T) {
 			t.Fatalf("iter %d NewTOTP: %v", i, err)
 		}
 		ctx := genotp.OtpContextFromBytes(ctxBytes)
-		code, err := totp.GenerateBound(ctx, &tt)
+		code, err := totp.GenBound(ctx, &tt)
 		if err != nil {
-			t.Fatalf("iter %d GenerateBound: %v", i, err)
+			t.Fatalf("iter %d GenBound: %v", i, err)
 		}
 		absDelta := deltaSteps
 		if absDelta < 0 {

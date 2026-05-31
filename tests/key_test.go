@@ -6,8 +6,8 @@ import (
 	"github.com/robby031/genotp-go"
 )
 
-func TestKeyGeneratorFillSecret(t *testing.T) {
-	kg := &genotp.KeyGenerator{}
+func TestKeyGenFillSecret(t *testing.T) {
+	kg := &genotp.KeyGen{}
 	buf := make([]byte, genotp.DefaultSecretBytes)
 
 	err := kg.FillSecret(buf)
@@ -27,8 +27,8 @@ func TestKeyGeneratorFillSecret(t *testing.T) {
 	}
 }
 
-func TestKeyGeneratorFillSecretTooSmall(t *testing.T) {
-	kg := &genotp.KeyGenerator{}
+func TestKeyGenFillSecretTooSmall(t *testing.T) {
+	kg := &genotp.KeyGen{}
 	buf := make([]byte, genotp.MinSecretBytes-1)
 
 	err := kg.FillSecret(buf)
@@ -37,8 +37,8 @@ func TestKeyGeneratorFillSecretTooSmall(t *testing.T) {
 	}
 }
 
-func TestKeyGeneratorGenerateSecret(t *testing.T) {
-	kg := &genotp.KeyGenerator{}
+func TestKeyGenGenerateSecret(t *testing.T) {
+	kg := &genotp.KeyGen{}
 	secret, err := kg.GenerateSecret(160)
 	if err != nil {
 		t.Fatalf("Failed to generate secret: %v", err)
@@ -49,24 +49,24 @@ func TestKeyGeneratorGenerateSecret(t *testing.T) {
 	}
 }
 
-func TestKeyGeneratorGenerateSecretTooSmall(t *testing.T) {
-	kg := &genotp.KeyGenerator{}
+func TestKeyGenGenerateSecretTooSmall(t *testing.T) {
+	kg := &genotp.KeyGen{}
 	_, err := kg.GenerateSecret(64)
 	if err != genotp.ErrInvalidSecret {
 		t.Errorf("Expected ErrInvalidSecret, got %v", err)
 	}
 }
 
-func TestKeyGeneratorGenerateSecretNotMultipleOf8(t *testing.T) {
-	kg := &genotp.KeyGenerator{}
+func TestKeyGenGenerateSecretNotMultipleOf8(t *testing.T) {
+	kg := &genotp.KeyGen{}
 	_, err := kg.GenerateSecret(129)
 	if err != genotp.ErrInvalidSecret {
 		t.Errorf("Expected ErrInvalidSecret, got %v", err)
 	}
 }
 
-func TestKeyGeneratorGenerateDefaultSecret(t *testing.T) {
-	kg := &genotp.KeyGenerator{}
+func TestKeyGenGenerateDefaultSecret(t *testing.T) {
+	kg := &genotp.KeyGen{}
 	secret, err := kg.GenerateDefaultSecret()
 	if err != nil {
 		t.Fatalf("Failed to generate default secret: %v", err)

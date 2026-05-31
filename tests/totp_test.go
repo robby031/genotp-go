@@ -231,7 +231,7 @@ func TestTOTPBoundEmptyContext(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to generate standard code: %v", err)
 		}
-		bound, err := totp.GenerateBound(empty, &timeVal)
+		bound, err := totp.GenBound(empty, &timeVal)
 		if err != nil {
 			t.Fatalf("Failed to generate bound code: %v", err)
 		}
@@ -256,12 +256,12 @@ func TestTOTPBoundDifferentContexts(t *testing.T) {
 	ctx2 := genotp.NewOtpContextBuilder().IP("10.0.0.2").Build()
 
 	timeVal := uint64(1234567890)
-	code1, err := totp.GenerateBound(ctx1, &timeVal)
+	code1, err := totp.GenBound(ctx1, &timeVal)
 	if err != nil {
 		t.Fatalf("Failed to generate bound code: %v", err)
 	}
 
-	code2, err := totp.GenerateBound(ctx2, &timeVal)
+	code2, err := totp.GenBound(ctx2, &timeVal)
 	if err != nil {
 		t.Fatalf("Failed to generate bound code: %v", err)
 	}
@@ -284,7 +284,7 @@ func TestTOTPVerifyBound(t *testing.T) {
 
 	ctx := genotp.NewOtpContextBuilder().Session("s1").Build()
 	timeVal := uint64(60)
-	code, err := totp.GenerateBound(ctx, &timeVal)
+	code, err := totp.GenBound(ctx, &timeVal)
 	if err != nil {
 		t.Fatalf("Failed to generate bound code: %v", err)
 	}

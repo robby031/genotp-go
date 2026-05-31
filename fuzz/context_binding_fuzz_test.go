@@ -28,7 +28,7 @@ func FuzzContextBinding(f *testing.F) {
 		ctx := genotp.OtpContextFromBytes(ctxBytes)
 
 		if hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 6); err == nil {
-			if code, err := hotp.GenerateBound(counter, ctx); err == nil {
+			if code, err := hotp.GenBound(counter, ctx); err == nil {
 				if ok, err := hotp.VerifyBound(code, counter, ctx); err == nil {
 					if !ok {
 						t.Error("round-trip HOTP bound failed")
@@ -38,7 +38,7 @@ func FuzzContextBinding(f *testing.F) {
 		}
 
 		if totp, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 30); err == nil {
-			if code, err := totp.GenerateBound(ctx, &counter); err == nil {
+			if code, err := totp.GenBound(ctx, &counter); err == nil {
 				if ok, err := totp.VerifyBound(code, ctx, &counter, 0); err == nil {
 					if !ok {
 						t.Error("round-trip TOTP bound failed")
@@ -49,7 +49,7 @@ func FuzzContextBinding(f *testing.F) {
 
 		for _, algo := range []genotp.Algorithm{genotp.SHA256, genotp.SHA512} {
 			if totp, err := genotp.NewTOTP(secret, algo, 6, 30); err == nil {
-				_, _ = totp.GenerateBound(ctx, &counter)
+				_, _ = totp.GenBound(ctx, &counter)
 			}
 		}
 	})

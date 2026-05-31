@@ -6,16 +6,16 @@ import (
 	"sync/atomic"
 )
 
-type SkewRecommendation int
+type SkewRecommend int
 
 const (
-	InsufficientData SkewRecommendation = iota
+	InsufficientData SkewRecommend = iota
 	NoActionNeeded
 	ConsistentDrift
 	WidenWindowOrCheckNtp
 )
 
-func (r SkewRecommendation) String() string {
+func (r SkewRecommend) String() string {
 	switch r {
 	case InsufficientData:
 		return "InsufficientData"
@@ -31,11 +31,11 @@ func (r SkewRecommendation) String() string {
 }
 
 type SkewReport struct {
-	SampleCount    int
-	MeanOffset     float64
-	NonZeroCount   int
-	EdgeHitRatio   float64
-	Recommendation SkewRecommendation
+	SampleCount  int
+	MeanOffset   float64
+	NonZeroCount int
+	EdgeHitRatio float64
+	Recommend    SkewRecommend
 }
 
 type skewState struct {
@@ -145,11 +145,11 @@ func (d *ClockSkewDetector) Report() SkewReport {
 
 	if sampleCount < 8 {
 		return SkewReport{
-			SampleCount:    sampleCount,
-			MeanOffset:     0,
-			NonZeroCount:   nonZeroCount,
-			EdgeHitRatio:   0,
-			Recommendation: InsufficientData,
+			SampleCount:  sampleCount,
+			MeanOffset:   0,
+			NonZeroCount: nonZeroCount,
+			EdgeHitRatio: 0,
+			Recommend:    InsufficientData,
 		}
 	}
 
@@ -165,20 +165,20 @@ func (d *ClockSkewDetector) Report() SkewReport {
 	}
 	edgeHitRatio := float64(edgeHits) / float64(sampleCount)
 
-	var recommendation SkewRecommendation
+	var recommend SkewRecommend
 	if edgeHitRatio >= 0.2 {
-		recommendation = WidenWindowOrCheckNtp
+		recommend = WidenWindowOrCheckNtp
 	} else if math.Abs(meanOffset) >= 0.5 {
-		recommendation = ConsistentDrift
+		recommend = ConsistentDrift
 	} else {
-		recommendation = NoActionNeeded
+		recommend = NoActionNeeded
 	}
 
 	return SkewReport{
-		SampleCount:    sampleCount,
-		MeanOffset:     meanOffset,
-		NonZeroCount:   nonZeroCount,
-		EdgeHitRatio:   edgeHitRatio,
-		Recommendation: recommendation,
+		SampleCount:  sampleCount,
+		MeanOffset:   meanOffset,
+		NonZeroCount: nonZeroCount,
+		EdgeHitRatio: edgeHitRatio,
+		Recommend:    recommend,
 	}
 }

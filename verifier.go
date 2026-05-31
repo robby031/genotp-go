@@ -69,7 +69,7 @@ func (v *Verifier) verifyInner(code, expected string, issuedContext, requestCont
 		return false
 	}
 
-	ctxMatch := constantTimeEqBytes(issuedContext, requestContext)
+	ctxMatch := constTimeEqBytes(issuedContext, requestContext)
 	codeMatch := constantTimeEq(code, expected)
 
 	if !ctxMatch || !codeMatch {

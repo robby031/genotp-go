@@ -10,9 +10,9 @@ const (
 	DefaultSecretBytes = 20
 )
 
-type KeyGenerator struct{}
+type KeyGen struct{}
 
-func (k *KeyGenerator) FillSecret(buf []byte) error {
+func (k *KeyGen) FillSecret(buf []byte) error {
 	if len(buf) < MinSecretBytes {
 		return ErrInvalidSecret
 	}
@@ -24,7 +24,7 @@ func (k *KeyGenerator) FillSecret(buf []byte) error {
 	return nil
 }
 
-func (k *KeyGenerator) GenerateSecret(bitLength int) ([]byte, error) {
+func (k *KeyGen) GenerateSecret(bitLength int) ([]byte, error) {
 	if bitLength < 128 {
 		return nil, ErrInvalidSecret
 	}
@@ -44,11 +44,11 @@ func (k *KeyGenerator) GenerateSecret(bitLength int) ([]byte, error) {
 	return secret, nil
 }
 
-func (k *KeyGenerator) GenerateDefaultSecret() ([]byte, error) {
+func (k *KeyGen) GenerateDefaultSecret() ([]byte, error) {
 	return k.GenerateSecret(160)
 }
 
 func CreateSecret() ([]byte, error) {
-	kg := &KeyGenerator{}
+	kg := &KeyGen{}
 	return kg.GenerateDefaultSecret()
 }
