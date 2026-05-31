@@ -6,12 +6,15 @@ import (
 
 const defaultMaxUsedCodes = 10000
 
-func replayKey(code string, context []byte) []byte {
-	k := make([]byte, 0, len(code)+1+len(context))
-	k = append(k, []byte(code)...)
-	k = append(k, 0)
-	k = append(k, context...)
-	return k
+func replayKey(dst []byte, code string, context []byte) []byte {
+	dst = append(dst, code...)
+	dst = append(dst, 0)
+	dst = append(dst, context...)
+	return dst
+}
+
+type replayBuf struct {
+	bytes []byte
 }
 
 type Verifier struct {
@@ -20,14 +23,19 @@ type Verifier struct {
 	maxAttempts  uint32
 	attempts     uint32
 	mu           sync.RWMutex
+	bufPool      sync.Pool
 }
 
 func NewVerifier(maxAttempts uint32) *Verifier {
-	return &Verifier{
+	v := &Verifier{
 		usedCodes:    make(map[string]struct{}),
 		maxUsedCodes: defaultMaxUsedCodes,
 		maxAttempts:  maxAttempts,
 	}
+	v.bufPool.New = func() any {
+		return &replayBuf{bytes: make([]byte, 0, 128)}
+	}
+	return v
 }
 
 func NewVerifierWithCapacity(maxAttempts uint32, maxUsedCodes int) *Verifier {
@@ -64,16 +72,20 @@ func (v *Verifier) verifyInner(code, expected string, issuedContext, requestCont
 		return false
 	}
 
-	key := string(replayKey(code, issuedContext))
-	if _, exists := v.usedCodes[key]; exists {
-		return false
-	}
+	b := v.bufPool.Get().(*replayBuf)
+	b.bytes = b.bytes[:0]
+
+	b.bytes = replayKey(b.bytes, code, issuedContext)
+	key := string(b.bytes)
+
+	_, isReplay := v.usedCodes[key]
 
 	ctxMatch := constTimeEqBytes(issuedContext, requestContext)
 	codeMatch := constantTimeEq(code, expected)
 
-	if !ctxMatch || !codeMatch {
+	if isReplay || !ctxMatch || !codeMatch {
 		v.attempts++
+		v.bufPool.Put(b)
 		return false
 	}
 
@@ -83,6 +95,8 @@ func (v *Verifier) verifyInner(code, expected string, issuedContext, requestCont
 
 	v.usedCodes[key] = struct{}{}
 	v.attempts = 0
+
+	v.bufPool.Put(b)
 	return true
 }
 
