@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/robby031/genotp-go/genotp"
+	"github.com/robby031/genotp-go"
 )
 
 func FuzzTOTP(f *testing.F) {

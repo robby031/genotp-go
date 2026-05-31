@@ -3,11 +3,11 @@ package genotp
 import "sync/atomic"
 
 type Metrics struct {
-	HotpGenerations atomic.Int64
+	HotpGenerations   atomic.Int64
 	HotpVerifications atomic.Int64
-	TotpGenerations atomic.Int64
+	TotpGenerations   atomic.Int64
 	TotpVerifications atomic.Int64
-	Errors atomic.Int64
+	Errors            atomic.Int64
 }
 
 func NewMetrics() *Metrics {

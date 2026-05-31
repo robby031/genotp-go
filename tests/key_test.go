@@ -3,7 +3,7 @@ package genotp_test
 import (
 	"testing"
 
-	"github.com/robby031/genotp-go/genotp"
+	"github.com/robby031/genotp-go"
 )
 
 func TestKeyGeneratorFillSecret(t *testing.T) {

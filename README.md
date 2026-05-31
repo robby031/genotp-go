@@ -2,8 +2,6 @@
 
 Security-focused OTP library in Go. Full implementation of **HOTP (RFC 4226)** and **TOTP (RFC 6238)** plus advanced features: **context binding**, **per-context replay isolation**, and **clock skew detection**.
 
-This is a native Go reimplementation of the [genotp](https://github.com/robby031/genotp) Rust library, with all features preserved and no FFI dependencies.
-
 ## Highlights
 
 - ✅ Passes all RFC 4226 & RFC 6238 test vectors (SHA1/256/512)
@@ -31,7 +29,7 @@ package main
 
 import (
     "fmt"
-    "github.com/robby031/genotp-go/genotp"
+    "github.com/robby031/genotp-go"
 )
 
 func main() {
@@ -159,7 +157,7 @@ Prevent OTP code reuse with:
 ## Testing
 
 ```bash
-go test ./genotp/...
+go test ./tests
 ```
 
 All RFC test vectors are included and verified:
