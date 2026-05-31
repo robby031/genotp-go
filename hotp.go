@@ -55,7 +55,9 @@ func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
 	}
 
 	h.macPool.New = func() any {
-		return &macBuf{mac: hmac.New(hashFn, h.secret)}
+		return &macBuf{
+			mac: hmac.New(hashFn, h.secret),
+		}
 	}
 	return h, nil
 }
@@ -183,5 +185,12 @@ func (h *HOTP) ClearSecret() {
 
 	for i := range h.secret {
 		h.secret[i] = 0
+	}
+
+	hashFn, _ := hashFuncFor(h.algorithm)
+	h.macPool.New = func() any {
+		return &macBuf{
+			mac: hmac.New(hashFn, h.secret),
+		}
 	}
 }

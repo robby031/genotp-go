@@ -43,6 +43,7 @@ func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (
 		period:    period,
 		modValue:  uint32(math.Pow10(int(digits))),
 	}
+
 	t.macPool.New = func() any {
 		return &macBuf{mac: hmac.New(hashFn, t.secret)}
 	}
@@ -178,21 +179,19 @@ func (t *TOTP) computeTruncated(counter uint64, context []byte) uint32 {
 	return truncated
 }
 
-// func (h *HOTP) ClearSecret() {
-// 	h.mu.Lock()
-// 	defer h.mu.Unlock()
-
-// 	for i := range h.secret {
-// 		h.secret[i] = 0
-// 	}
-// }
-
 func (t *TOTP) ClearSecret() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	for i := range t.secret {
 		t.secret[i] = 0
+	}
+
+	hashFn, _ := hashFuncFor(t.algorithm)
+	t.macPool.New = func() any {
+		return &macBuf{
+			mac: hmac.New(hashFn, t.secret),
+		}
 	}
 }
 
