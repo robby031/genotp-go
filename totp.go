@@ -3,6 +3,7 @@ package genotp
 import (
 	"crypto/hmac"
 	"encoding/binary"
+	"hash"
 	"math"
 	"sync"
 	"time"
@@ -14,38 +15,35 @@ type TOTP struct {
 	digits    uint32
 	period    uint64
 	modValue  uint32
-	macPool   sync.Pool
+	hashFunc  func() hash.Hash
+	mu        sync.RWMutex
 }
 
 func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (*TOTP, error) {
 	if digits < 6 || digits > 8 {
 		return nil, ErrInvalidDigits
 	}
-
 	if period == 0 {
 		return nil, ErrInvalidTime
 	}
-
 	if len(secret) == 0 {
 		return nil, ErrInvalidSecret
 	}
-
 	hashFn, ok := hashFuncFor(algorithm)
 	if !ok {
 		return nil, ErrInvalidAlgorithm
 	}
+	secretCopy := make([]byte, len(secret))
+	copy(secretCopy, secret)
 
-	t := &TOTP{
-		secret:    secret,
+	return &TOTP{
+		secret:    secretCopy,
 		algorithm: algorithm,
 		digits:    digits,
 		period:    period,
 		modValue:  uint32(math.Pow10(int(digits))),
-	}
-	t.macPool.New = func() any {
-		return &macBuf{mac: hmac.New(hashFn, t.secret)}
-	}
-	return t, nil
+		hashFunc:  hashFn,
+	}, nil
 }
 
 func (t *TOTP) Generate(timeVal *uint64) (string, error) {
@@ -158,24 +156,33 @@ func (t *TOTP) genDigits(dst []byte, counter uint64, context []byte) []byte {
 }
 
 func (t *TOTP) computeTruncated(counter uint64, context []byte) uint32 {
-	mb := t.macPool.Get().(*macBuf)
-	binary.BigEndian.PutUint64(mb.counter[:], counter)
-	mb.mac.Reset()
-	mb.mac.Write(mb.counter[:])
+	t.mu.RLock()
+	secret := t.secret
+	hashFn := t.hashFunc
+	t.mu.RUnlock()
+
+	mac := hmac.New(hashFn, secret)
+	var counterBytes [8]byte
+	binary.BigEndian.PutUint64(counterBytes[:], counter)
+	mac.Write(counterBytes[:])
 	if len(context) > 0 {
-		mb.mac.Write(contextBindTagBytes)
-		mb.mac.Write(context)
+		mac.Write(contextBindTagBytes)
+		mac.Write(context)
 	}
-	hmacBytes := mb.mac.Sum(mb.sum[:0])
-	truncated := dynamicTruncate(hmacBytes, t.modValue)
-	t.macPool.Put(mb)
-	return truncated
+	hmacBytes := mac.Sum(nil)
+	return dynamicTruncate(hmacBytes, t.modValue)
 }
 
 func (t *TOTP) ClearSecret() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.secret == nil {
+		return
+	}
 	for i := range t.secret {
 		t.secret[i] = 0
 	}
+	t.secret = nil
 }
 
 func nowOr(timeVal *uint64) uint64 {
