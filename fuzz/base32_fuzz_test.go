@@ -15,24 +15,26 @@ func FuzzBase32EncodeDecode(f *testing.F) {
 		}
 
 		encoded := genotp.EncodeBase32(data)
-		decoded, err := genotp.DecodeBase32(encoded)
+		dst := make([]byte, len(data))
+		n, err := genotp.DecodeBase32(dst, encoded)
 		if err == nil {
-			if len(decoded) < len(data) {
-				t.Errorf("Decoded length %d < original length %d", len(decoded), len(data))
+			if n < len(data) {
+				t.Errorf("Decoded length %d < original length %d", n, len(data))
 				return
 			}
 			for i := range data {
-				if decoded[i] != data[i] {
-					t.Errorf("Byte %d: expected %x, got %x", i, data[i], decoded[i])
+				if dst[i] != data[i] {
+					t.Errorf("Byte %d: expected %x, got %x", i, data[i], dst[i])
 					return
 				}
 			}
 		}
 
 		strData := string(data)
-		decoded2, err := genotp.DecodeBase32(strData)
+		dst2 := make([]byte, len(data))
+		_, err = genotp.DecodeBase32(dst2, strData)
 		if err == nil {
-			_ = genotp.EncodeBase32(decoded2)
+			_ = genotp.EncodeBase32(dst2)
 		}
 	})
 }

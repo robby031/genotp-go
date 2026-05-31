@@ -9,18 +9,19 @@ import (
 func TestBase32EncodeDecode(t *testing.T) {
 	data := []byte{0x31, 0x32, 0x33, 0x34, 0x35}
 	encoded := genotp.EncodeBase32(data)
-	decoded, err := genotp.DecodeBase32(encoded)
+	dst := make([]byte, len(data))
+	n, err := genotp.DecodeBase32(dst, encoded)
 	if err != nil {
 		t.Fatalf("Failed to decode: %v", err)
 	}
 
-	if len(decoded) != len(data) {
-		t.Errorf("Expected length %d, got %d", len(data), len(decoded))
+	if n != len(data) {
+		t.Errorf("Expected length %d, got %d", len(data), n)
 	}
 
 	for i := range data {
-		if decoded[i] != data[i] {
-			t.Errorf("Byte %d: expected %x, got %x", i, data[i], decoded[i])
+		if dst[i] != data[i] {
+			t.Errorf("Byte %d: expected %x, got %x", i, data[i], dst[i])
 		}
 	}
 }
@@ -34,7 +35,8 @@ func TestBase32EncodeEmpty(t *testing.T) {
 }
 
 func TestBase32DecodeInvalid(t *testing.T) {
-	_, err := genotp.DecodeBase32("invalid!!!@#")
+	dst := make([]byte, 10)
+	_, err := genotp.DecodeBase32(dst, "invalid!!!@#")
 	if err == nil {
 		t.Error("Expected error for invalid base32")
 	}

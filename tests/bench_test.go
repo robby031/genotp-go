@@ -145,10 +145,11 @@ func BenchmarkBase32Encode(b *testing.B) {
 
 func BenchmarkBase32Decode(b *testing.B) {
 	encoded := genotp.EncodeBase32(benchSecret)
+	dst := make([]byte, len(benchSecret))
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := genotp.DecodeBase32(encoded); err != nil {
+		if _, err := genotp.DecodeBase32(dst, encoded); err != nil {
 			b.Fatal(err)
 		}
 	}
