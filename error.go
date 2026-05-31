@@ -9,7 +9,6 @@ var (
 	ErrInvalidAlgorithm   = errors.New("invalid algorithm")
 	ErrInvalidCounter     = errors.New("invalid counter value")
 	ErrInvalidTime        = errors.New("invalid time value")
-	ErrInvalidPeriod      = errors.New("invalid period value")
 	ErrVerificationFailed = errors.New("OTP verification failed")
 	ErrRateLimited        = errors.New("rate limited")
 	ErrReplayAttack       = errors.New("replay attack detected")

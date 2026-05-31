@@ -198,8 +198,8 @@ func TestTOTPInvalidPeriod(t *testing.T) {
 	secret := []byte{0x31, 0x32, 0x33, 0x34, 0x35}
 
 	_, err := genotp.NewTOTP(secret, genotp.SHA1, 6, 0)
-	if err != genotp.ErrInvalidPeriod {
-		t.Errorf("Expected ErrInvalidPeriod, got %v", err)
+	if err != genotp.ErrInvalidTime {
+		t.Errorf("Expected ErrInvalidTime, got %v", err)
 	}
 }
 

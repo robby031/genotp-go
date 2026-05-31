@@ -28,7 +28,7 @@ func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (
 	}
 
 	if period == 0 {
-		return nil, ErrInvalidPeriod
+		return nil, ErrInvalidTime
 	}
 
 	if len(secret) == 0 {
@@ -74,24 +74,25 @@ func (t *TOTP) Verify(code string, timeVal *uint64, window uint64) (bool, error)
 	}
 
 	counter := current / t.period
+	if window > math.MaxInt64 {
+		return false, ErrInvalidTime
+	}
 	windowInt64 := int64(window)
 
 	var matched byte
 	for i := -windowInt64; i <= windowInt64; i++ {
-		testCounter := counter + uint64(i)
-		if testCounter > counter && i < 0 {
-			testCounter = 0
-		}
-
-		testTime := testCounter * t.period
+		testCounter := addCounterSigned(counter, i)
+		testTime := saturatingMul(testCounter, t.period)
 		expected, err := t.Generate(&testTime)
 		if err != nil {
-			continue
+			return false, err
 		}
 
+		var m byte
 		if constantTimeEq(code, expected) {
-			matched = 1
+			m = 1
 		}
+		matched |= m
 	}
 
 	return matched != 0, nil
@@ -130,24 +131,25 @@ func (t *TOTP) VerifyBound(code string, context *OtpContext, timeVal *uint64, wi
 	}
 
 	counter := current / t.period
+	if window > math.MaxInt64 {
+		return false, ErrInvalidTime
+	}
 	windowInt64 := int64(window)
 
 	var matched byte
 	for i := -windowInt64; i <= windowInt64; i++ {
-		testCounter := counter + uint64(i)
-		if testCounter > counter && i < 0 {
-			testCounter = 0
-		}
-
-		testTime := testCounter * t.period
+		testCounter := addCounterSigned(counter, i)
+		testTime := saturatingMul(testCounter, t.period)
 		expected, err := t.GenerateBound(context, &testTime)
 		if err != nil {
-			continue
+			return false, err
 		}
 
+		var m byte
 		if constantTimeEq(code, expected) {
-			matched = 1
+			m = 1
 		}
+		matched |= m
 	}
 
 	return matched != 0, nil
@@ -162,19 +164,25 @@ func (t *TOTP) VerifyTracking(code string, timeVal *uint64, window uint64, detec
 	}
 
 	baseCounter := current / t.period
-	adjustedCounter := baseCounter + uint64(detector.CurrentOffset())
+	adjustedCounter, ok := checkedAddSigned(baseCounter, detector.CurrentOffset())
+	if !ok {
+		adjustedCounter = baseCounter
+	}
+
+	if window > math.MaxInt64 {
+		return false, ErrInvalidTime
+	}
 	windowInt64 := int64(window)
 
 	for i := -windowInt64; i <= windowInt64; i++ {
-		testCounter := adjustedCounter + uint64(i)
-		if testCounter > adjustedCounter && i < 0 {
+		testCounter, ok := checkedAddSigned(adjustedCounter, i)
+		if !ok {
 			continue
 		}
-
-		testTime := testCounter * t.period
+		testTime := saturatingMul(testCounter, t.period)
 		expected, err := t.Generate(&testTime)
 		if err != nil {
-			continue
+			return false, err
 		}
 
 		if constantTimeEq(code, expected) {
@@ -228,4 +236,38 @@ func (t *TOTP) ClearSecret() {
 	for i := range t.secret {
 		t.secret[i] = 0
 	}
+}
+
+func addCounterSigned(counter uint64, delta int64) uint64 {
+	v, ok := checkedAddSigned(counter, delta)
+	if !ok {
+		return 0
+	}
+	return v
+}
+
+func checkedAddSigned(counter uint64, delta int64) (uint64, bool) {
+	if delta >= 0 {
+		d := uint64(delta)
+		sum := counter + d
+		if sum < counter {
+			return 0, false
+		}
+		return sum, true
+	}
+	d := uint64(-delta)
+	if d > counter {
+		return 0, false
+	}
+	return counter - d, true
+}
+
+func saturatingMul(a, b uint64) uint64 {
+	if a == 0 || b == 0 {
+		return 0
+	}
+	if a > math.MaxUint64/b {
+		return math.MaxUint64
+	}
+	return a * b
 }

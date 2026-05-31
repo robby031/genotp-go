@@ -3,6 +3,7 @@ package genotp
 import (
 	"encoding/base32"
 	"errors"
+	"strings"
 )
 
 func EncodeBase32(data []byte) string {
@@ -10,7 +11,9 @@ func EncodeBase32(data []byte) string {
 }
 
 func DecodeBase32(data string) ([]byte, error) {
-	decoded, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(data)
+	cleaned := normalizeBase32Secret(data)
+	upper := strings.ToUpper(cleaned)
+	decoded, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(upper)
 	if err != nil {
 		return nil, errors.Join(ErrInvalidSecret, err)
 	}

@@ -10,13 +10,11 @@ const (
 
 func (a Algorithm) String() string {
 	switch a {
-	case SHA1:
-		return "SHA1"
 	case SHA256:
 		return "SHA256"
 	case SHA512:
 		return "SHA512"
 	default:
-		return "UNKNOWN"
+		return "SHA1"
 	}
 }

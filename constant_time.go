@@ -5,14 +5,23 @@ func constantTimeEq(a, b string) bool {
 }
 
 func constantTimeEqBytes(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
+	lenA := len(a)
+	lenB := len(b)
+	maxLen := max(lenB, lenA)
+
+	diff := uint32(lenA) ^ uint32(lenB)
+
+	for i := 0; i < maxLen; i++ {
+		var av, bv byte
+		if i < lenA {
+			av = a[i]
+		}
+		if i < lenB {
+			bv = b[i]
+		}
+		diff |= uint32(av ^ bv)
 	}
 
-	var result byte
-	for i := 0; i < len(a); i++ {
-		result |= a[i] ^ b[i]
-	}
-
-	return result == 0
+	nonzero := (diff | -diff) >> 31
+	return nonzero == 0
 }

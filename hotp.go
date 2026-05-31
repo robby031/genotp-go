@@ -67,7 +67,7 @@ func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (
 
 		expected, err := h.Generate(testCounter)
 		if err != nil {
-			continue
+			return 0, false, err
 		}
 
 		if constantTimeEq(code, expected) {

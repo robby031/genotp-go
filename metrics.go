@@ -3,11 +3,11 @@ package genotp
 import "sync/atomic"
 
 type Metrics struct {
-	HotpGenerations   atomic.Int64
-	HotpVerifications atomic.Int64
-	TotpGenerations   atomic.Int64
-	TotpVerifications atomic.Int64
-	Errors            atomic.Int64
+	HotpGenerations   atomic.Uint64
+	HotpVerifications atomic.Uint64
+	TotpGenerations   atomic.Uint64
+	TotpVerifications atomic.Uint64
+	Errors            atomic.Uint64
 }
 
 func NewMetrics() *Metrics {
@@ -34,23 +34,23 @@ func (m *Metrics) IncrementError() {
 	m.Errors.Add(1)
 }
 
-func (m *Metrics) GetHotpGenerations() int64 {
+func (m *Metrics) GetHotpGenerations() uint64 {
 	return m.HotpGenerations.Load()
 }
 
-func (m *Metrics) GetHotpVerifications() int64 {
+func (m *Metrics) GetHotpVerifications() uint64 {
 	return m.HotpVerifications.Load()
 }
 
-func (m *Metrics) GetTotpGenerations() int64 {
+func (m *Metrics) GetTotpGenerations() uint64 {
 	return m.TotpGenerations.Load()
 }
 
-func (m *Metrics) GetTotpVerifications() int64 {
+func (m *Metrics) GetTotpVerifications() uint64 {
 	return m.TotpVerifications.Load()
 }
 
-func (m *Metrics) GetErrors() int64 {
+func (m *Metrics) GetErrors() uint64 {
 	return m.Errors.Load()
 }
 

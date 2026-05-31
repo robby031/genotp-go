@@ -1,7 +1,7 @@
 package genotp
 
 import (
-	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -67,15 +67,15 @@ func (u *OtpAuthUri) Build() string {
 	uri.WriteString("otpauth://")
 	uri.WriteString(typeStr)
 	uri.WriteByte('/')
-	uri.WriteString(urlEncode(u.label))
+	uri.WriteString(percentEncode(u.label))
 	uri.WriteString("?secret=")
 
 	normalized := normalizeBase32Secret(u.secret)
-	uri.WriteString(urlEncode(normalized))
+	uri.WriteString(percentEncode(normalized))
 
 	if u.issuer != "" {
 		uri.WriteString("&issuer=")
-		uri.WriteString(urlEncode(u.issuer))
+		uri.WriteString(percentEncode(u.issuer))
 	}
 
 	if u.algorithm != nil {
@@ -85,17 +85,17 @@ func (u *OtpAuthUri) Build() string {
 
 	if u.digits != nil {
 		uri.WriteString("&digits=")
-		uri.WriteString(urlEncode(uintToString(*u.digits)))
+		uri.WriteString(strconv.FormatUint(uint64(*u.digits), 10))
 	}
 
 	if u.period != nil {
 		uri.WriteString("&period=")
-		uri.WriteString(urlEncode(uint64ToString(*u.period)))
+		uri.WriteString(strconv.FormatUint(*u.period, 10))
 	}
 
 	if u.counter != nil {
 		uri.WriteString("&counter=")
-		uri.WriteString(urlEncode(uint64ToString(*u.counter)))
+		uri.WriteString(strconv.FormatUint(*u.counter, 10))
 	}
 
 	return uri.String()
@@ -105,40 +105,60 @@ func (u *OtpAuthUri) String() string {
 	return u.Build()
 }
 
-func urlEncode(s string) string {
-	return url.QueryEscape(s)
+func percentEncode(s string) string {
+	var buf strings.Builder
+	buf.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		b := s[i]
+		if shouldNotEncode(b) {
+			buf.WriteByte(b)
+		} else {
+			buf.WriteByte('%')
+			buf.WriteByte(hexUpper[b>>4])
+			buf.WriteByte(hexUpper[b&0x0F])
+		}
+	}
+	return buf.String()
+}
+
+const hexUpper = "0123456789ABCDEF"
+
+func shouldNotEncode(b byte) bool {
+	switch {
+	case b >= 'A' && b <= 'Z':
+		return true
+	case b >= 'a' && b <= 'z':
+		return true
+	case b >= '0' && b <= '9':
+		return true
+	case b == '-' || b == '.' || b == '_' || b == '~':
+		return true
+	}
+	return false
 }
 
 func normalizeBase32Secret(s string) string {
 	var result strings.Builder
 	for _, c := range s {
-		if c != '=' && !strings.ContainsRune(" \t\n\r", c) {
+		if c != '=' && !isWhitespace(c) {
 			result.WriteRune(c)
 		}
 	}
 	return result.String()
 }
 
-func uintToString(n uint32) string {
-	var buf []byte
-	for n > 0 {
-		buf = append([]byte{byte('0' + n%10)}, buf...)
-		n /= 10
+func isWhitespace(c rune) bool {
+	switch c {
+	case '\t', '\n', '\v', '\f', '\r', ' ',
+		0x0085, // NEL
+		0x00A0, // NBSP
+		0x1680,
+		0x2028, 0x2029,
+		0x202F, 0x205F, 0x3000:
+		return true
 	}
-	if len(buf) == 0 {
-		return "0"
+	if c >= 0x2000 && c <= 0x200A {
+		return true
 	}
-	return string(buf)
-}
-
-func uint64ToString(n uint64) string {
-	var buf []byte
-	for n > 0 {
-		buf = append([]byte{byte('0' + n%10)}, buf...)
-		n /= 10
-	}
-	if len(buf) == 0 {
-		return "0"
-	}
-	return string(buf)
+	return false
 }
