@@ -88,7 +88,7 @@ code, _ := hotp.GenBound(counter, ctx)
 if hotp.VerifyBound(form.Code, counter, ctx) {
     // ✓ code correct AND context matches
 }
-// Attacker who intercepts code from different IP/session → automatically rejected.
+// Attacker who intercepts code from different IP/session -> automatically rejected.
 ```
 
 ## Features
@@ -142,7 +142,10 @@ Prevent OTP code reuse with:
 - `TOTP`: Time-based OTP implementation
 - `OtpContext`: Context binding data
 - `ClockSkewDetector`: Clock drift tracking
-- `Verifier`: Replay protection and rate limiting
+- `Verifier`: Replay protection and rate limiting (per-instance)
+- `ReplayStore`: pluggable backend untuk replay-set (default = in-memory
+  bounded + TTL; untuk multi-replica deployment implement dengan Redis
+  / etcd / sql — lihat [`docs/distributed_replay_protection.md`](docs/distributed_replay_protection.md))
 
 ### Helper Functions
 
