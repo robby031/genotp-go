@@ -70,6 +70,8 @@ uri := genotp.NewOtpAuthUri(genotp.TotpType, "ACME:alice@example.com", genotp.En
 // Render `uri` to QR code (e.g., with a QR code library)
 ```
 
+> **For comprehensive usage examples covering all features** — including HOTP/TOTP, builder/config patterns, context binding, verifier, clock skew detection, metrics, and production recommendations — see [`docs/usage.md`](docs/usage.md).
+
 ### Context binding — anti channel OTP intercept (flagship feature)
 
 ```go
@@ -89,6 +91,34 @@ if hotp.VerifyBound(form.Code, counter, ctx) {
     // ✓ code correct AND context matches
 }
 // Attacker who intercepts code from different IP/session -> automatically rejected.
+```
+
+## Benchmarks
+```text
+go test ./tests -run=^$ -bench=. -benchmem
+goos: darwin
+goarch: arm64
+pkg: github.com/robby031/genotp-go/tests
+cpu: Apple M4
+BenchmarkHOTPGenerate-10                         9545760               105.8 ns/op             8 B/op          1 allocs/op
+BenchmarkHOTPVerify-10                          10859712               115.2 ns/op             0 B/op          0 allocs/op
+BenchmarkTOTPGenerate-10                         9208617               132.3 ns/op             8 B/op          1 allocs/op
+BenchmarkTOTPGenerateAtFixedTime-10             11921437               101.3 ns/op             8 B/op          1 allocs/op
+BenchmarkTOTPVerify-10                           3929808               310.1 ns/op             0 B/op          0 allocs/op
+BenchmarkTOTPVerifyWindow0-10                   12150944               101.0 ns/op             0 B/op          0 allocs/op
+BenchmarkGenerateSecretDefault-10                6410404               188.3 ns/op            24 B/op          1 allocs/op
+BenchmarkGenerateSecret256-10                    6637180               182.0 ns/op            32 B/op          1 allocs/op
+BenchmarkBase32Encode-10                        62522793                19.37 ns/op           32 B/op          1 allocs/op
+BenchmarkBase32Decode-10                        24413192                50.44 ns/op            0 B/op          0 allocs/op
+BenchmarkProvisioningURITOTP-10                  3629484               331.1 ns/op           512 B/op         12 allocs/op
+BenchmarkProvisioningURIHOTP-10                  3601312               332.0 ns/op           512 B/op         12 allocs/op
+BenchmarkReplayProtectionVerify-10               5702733               242.2 ns/op             9 B/op          1 allocs/op
+BenchmarkRateLimiterContention-10                 184306              6468 ns/op             112 B/op          5 allocs/op
+BenchmarkConcurrentHOTPVerify-10                   43238             27402 ns/op             208 B/op          5 allocs/op
+BenchmarkTOTPVerifyParallel-10                  69556314                16.51 ns/op            0 B/op          0 allocs/op
+BenchmarkVerifierParallelFreshCodes-10           3175160               389.8 ns/op            10 B/op          1 allocs/op
+PASS
+ok      github.com/robby031/genotp-go/tests     24.131s
 ```
 
 ## Features
