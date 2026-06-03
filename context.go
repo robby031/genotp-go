@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const maxContextFieldLen = 256
+
 type OtpContext struct {
 	bytes []byte
 }
@@ -37,27 +39,38 @@ func NewOtpContextBuilder() *OtpContextBuilder {
 }
 
 func (b *OtpContextBuilder) IP(ip string) *OtpContextBuilder {
-	b.fields["ip"] = ip
+	if len(ip) <= maxContextFieldLen {
+		b.fields["ip"] = ip
+	}
 	return b
 }
 
 func (b *OtpContextBuilder) Device(deviceID string) *OtpContextBuilder {
-	b.fields["device"] = deviceID
+	if len(deviceID) <= maxContextFieldLen {
+		b.fields["device"] = deviceID
+	}
 	return b
 }
 
 func (b *OtpContextBuilder) Session(session string) *OtpContextBuilder {
-	b.fields["session"] = session
+	if len(session) <= maxContextFieldLen {
+		b.fields["session"] = session
+	}
 	return b
 }
 
 func (b *OtpContextBuilder) Origin(origin string) *OtpContextBuilder {
-	b.fields["origin"] = normalizeOrigin(origin)
+	normalized := normalizeOrigin(origin)
+	if len(normalized) <= maxContextFieldLen {
+		b.fields["origin"] = normalized
+	}
 	return b
 }
 
 func (b *OtpContextBuilder) Custom(key, value string) *OtpContextBuilder {
-	b.fields["x-"+key] = value
+	if len(key) <= maxContextFieldLen && len(value) <= maxContextFieldLen {
+		b.fields["x-"+key] = value
+	}
 	return b
 }
 
