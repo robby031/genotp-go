@@ -1,5 +1,11 @@
 # genotp-go
 
+[![CI](https://github.com/robby031/genotp-go/actions/workflows/ci.yml/badge.svg)](https://github.com/robby031/genotp-go/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/robby031/genotp-go)](https://goreportcard.com/report/github.com/robby031/genotp-go)
+[![codecov](https://codecov.io/gh/robby031/genotp-go/branch/main/graph/badge.svg)](https://codecov.io/gh/robby031/genotp-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/robby031/genotp-go.svg)](https://pkg.go.dev/github.com/robby031/genotp-go)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Security-focused OTP library in Go. Full implementation of **HOTP (RFC 4226)** and **TOTP (RFC 6238)** plus advanced features: **context binding**, **per-context replay isolation**, and **clock skew detection**.
 
 ## Highlights
@@ -193,12 +199,34 @@ Prevent OTP code reuse with:
 ## Testing
 
 ```bash
+# Run all tests
 go test ./tests
+
+# Run tests with coverage
+go test -v -race -coverprofile=coverage.out ./tests/
+
+# Run fuzz tests (locally)
+go test -fuzz=FuzzHOTPGenerate -fuzztime=1m ./fuzz/
+go test -fuzz=FuzzTOTPVerify -fuzztime=1m ./fuzz/
 ```
 
 All RFC test vectors are included and verified:
 - RFC 4226 HOTP test vectors
 - RFC 6238 TOTP test vectors (SHA1, SHA256, SHA512)
+
+### Continuous Integration
+
+The project uses GitHub Actions for automated testing on every push to `main` and pull requests:
+
+**CI Workflow includes:**
+- ✅ **Tests** - Run on Go 1.21, 1.22, and 1.23 with race detection
+- ✅ **Fuzz Tests** - 30 seconds per fuzz target (10 fuzz functions total)
+- ✅ **Linting** - golangci-lint with 15+ enabled linters
+- ✅ **Security Scan** - gosec static analysis
+- ✅ **Build Verification** - Ensures code compiles and go.mod is tidy
+- ✅ **Code Coverage** - Uploaded to Codecov
+
+See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the full configuration.
 
 ## License
 

@@ -1,0 +1,68 @@
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - gofmt
+    - goimports
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - gocritic
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  
+  govet:
+    check-shadowing: true
+    enable-all: true
+  
+  gosec:
+    excludes:
+      - G104  # We handle errors appropriately
+      - G401  # We use MD5/SHA1 intentionally for HOTP/TOTP
+  
+  revive:
+    rules:
+      - name: exported
+        disabled: false
+      - name: var-naming
+        disabled: false
+      - name: package-comments
+        disabled: true
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  
+  exclude-rules:
+    # Exclude certain linters from test files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - unparam
+    
+    # Exclude fuzz test files from certain checks
+    - path: fuzz/.*_fuzz_test\.go
+      linters:
+        - errcheck
+        - gosec
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
