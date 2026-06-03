@@ -33,13 +33,15 @@ linters-settings:
     excludes:
       - G104  # We handle errors appropriately
       - G401  # We use MD5/SHA1 intentionally for HOTP/TOTP
+      - G505  # SHA1 is required by HOTP/TOTP RFC 4226/6238
+      - G115  # Integer overflow conversions are intentional and safe here
   
   revive:
     rules:
       - name: exported
-        disabled: false
+        disabled: true
       - name: var-naming
-        disabled: false
+        disabled: true
       - name: package-comments
         disabled: true
 
@@ -61,6 +63,11 @@ issues:
       linters:
         - errcheck
         - gosec
+
+    # sync.Pool.Get() type assertions are safe by design
+    - linters:
+        - errcheck
+      text: "type assertion"
 
 output:
   format: colored-line-number

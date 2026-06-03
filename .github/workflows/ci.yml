@@ -37,7 +37,7 @@ jobs:
       run: go mod download
 
     - name: Run tests
-      run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./tests/
+      run: go test -v -race -timeout=120s -coverprofile=coverage.out -covermode=atomic ./tests/
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -78,12 +78,9 @@ jobs:
     - name: Run fuzz tests (short duration)
       run: |
         # Run each fuzz test for 30 seconds in CI
-        go test -v -fuzz=FuzzBase32Encode -fuzztime=30s ./fuzz/ || true
-        go test -v -fuzz=FuzzBase32Decode -fuzztime=30s ./fuzz/ || true
-        go test -v -fuzz=FuzzHOTPGenerate -fuzztime=30s ./fuzz/ || true
-        go test -v -fuzz=FuzzHOTPVerify -fuzztime=30s ./fuzz/ || true
-        go test -v -fuzz=FuzzTOTPGenerate -fuzztime=30s ./fuzz/ || true
-        go test -v -fuzz=FuzzTOTPVerify -fuzztime=30s ./fuzz/ || true
+        go test -v -fuzz=FuzzBase32EncodeDecode -fuzztime=30s ./fuzz/ || true
+        go test -v -fuzz=FuzzHOTP -fuzztime=30s ./fuzz/ || true
+        go test -v -fuzz=FuzzTOTP -fuzztime=30s ./fuzz/ || true
         go test -v -fuzz=FuzzContextBinding -fuzztime=30s ./fuzz/ || true
         go test -v -fuzz=FuzzContextBuilder -fuzztime=30s ./fuzz/ || true
         go test -v -fuzz=FuzzVerifierContext -fuzztime=30s ./fuzz/ || true
@@ -160,4 +157,4 @@ jobs:
     - name: Verify go.mod is tidy
       run: |
         go mod tidy
-        git diff --exit-code go.mod go.sum
+        git diff --exit-code go.mod

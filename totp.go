@@ -69,7 +69,9 @@ func (t *TOTP) Verify(code string, timeVal *uint64, window uint64) (bool, error)
 	}
 	current := nowOr(timeVal)
 	counter := current / t.period
-	if window >= math.MaxInt64 {
+	// Reject unreasonably large windows: max 1000 steps is far beyond any practical use.
+	// Also prevents integer overflow when converting to int64.
+	if window > 1000 {
 		return false, ErrInvalidTime
 	}
 	windowInt64 := int64(window)
@@ -111,7 +113,7 @@ func (t *TOTP) VerifyBound(code string, context *OtpContext, timeVal *uint64, wi
 	}
 	current := nowOr(timeVal)
 	counter := current / t.period
-	if window >= math.MaxInt64 {
+	if window > 1000 {
 		return false, ErrInvalidTime
 	}
 	windowInt64 := int64(window)
@@ -146,7 +148,7 @@ func (t *TOTP) VerifyTracking(code string, timeVal *uint64, window uint64, detec
 		adjustedCounter = baseCounter
 	}
 
-	if window >= math.MaxInt64 {
+	if window > 1000 {
 		return false, ErrInvalidTime
 	}
 	windowInt64 := int64(window)
