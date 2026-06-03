@@ -76,8 +76,7 @@ func (t *TOTP) Verify(code string, timeVal *uint64, window uint64) (bool, error)
 	}
 	windowInt64 := int64(window)
 
-	var userBuf [8]byte
-	userBytes := userBuf[:copy(userBuf[:], code)]
+	userBytes := []byte(code)
 
 	var matched byte
 	for i := -windowInt64; i <= windowInt64; i++ {
@@ -123,8 +122,7 @@ func (t *TOTP) VerifyBound(code string, context *OtpContext, timeVal *uint64, wi
 		ctxBytes = context.Bytes()
 	}
 
-	var userBuf [8]byte
-	userBytes := userBuf[:copy(userBuf[:], code)]
+	userBytes := []byte(code)
 
 	var matched byte
 	for i := -windowInt64; i <= windowInt64; i++ {
@@ -153,8 +151,7 @@ func (t *TOTP) VerifyTracking(code string, timeVal *uint64, window uint64, detec
 	}
 	windowInt64 := int64(window)
 
-	var userBuf [8]byte
-	userBytes := userBuf[:copy(userBuf[:], code)]
+	userBytes := []byte(code)
 
 	for i := -windowInt64; i <= windowInt64; i++ {
 		testCounter, ok := checkedAddSigned(adjustedCounter, i)

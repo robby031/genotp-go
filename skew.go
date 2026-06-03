@@ -69,6 +69,8 @@ func NewClockSkewDetector(capacity int) *ClockSkewDetector {
 
 func (d *ClockSkewDetector) Record(matchedOffset int64, windowUsed uint64) {
 	d.inner.Lock()
+	defer d.inner.Unlock()
+
 	s := &d.state
 	if s.length < s.capacity {
 		s.buffer = append(s.buffer, matchedOffset)
@@ -91,14 +93,12 @@ func (d *ClockSkewDetector) Record(matchedOffset int64, windowUsed uint64) {
 		s.writeIdx = (s.writeIdx + 1) % s.capacity
 	}
 
-	currentSum := s.sum
-	currentLength := s.length
-	d.inner.Unlock()
-
 	atomic.StoreInt64(&d.lastWindowUsed, int64(windowUsed))
 
-	if atomic.LoadInt32(&d.autoAdjust) == 1 && currentLength >= 16 {
-		mean := float64(currentSum) / float64(currentLength)
+	// EMA update must stay under lock — Load/compute/Store on smoothedScaled
+	// is a read-modify-write and would lose updates under concurrent Record.
+	if atomic.LoadInt32(&d.autoAdjust) == 1 && s.length >= 16 {
+		mean := float64(s.sum) / float64(s.length)
 
 		const alpha = 0.2
 		prevScaled := atomic.LoadInt64(&d.smoothedScaled)

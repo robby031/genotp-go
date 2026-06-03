@@ -89,8 +89,7 @@ func (h *HOTP) Verify(code string, counter uint64) (bool, error) {
 	if h.cleared.Load() {
 		return false, ErrInvalidSecret
 	}
-	var userBuf [8]byte
-	userBytes := userBuf[:copy(userBuf[:], code)]
+	userBytes := []byte(code)
 
 	var expectedBuf [8]byte
 	expected := h.genDigits(expectedBuf[:], counter, nil)
@@ -105,8 +104,7 @@ func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (
 		return 0, false, ErrInvalidCounter
 	}
 
-	var userBuf [8]byte
-	userBytes := userBuf[:copy(userBuf[:], code)]
+	userBytes := []byte(code)
 
 	for i := uint64(0); i <= lookAhead; i++ {
 		testCounter := counter + i
@@ -145,8 +143,7 @@ func (h *HOTP) VerifyBound(code string, counter uint64, context *OtpContext) (bo
 	if context != nil {
 		ctxBytes = context.Bytes()
 	}
-	var userBuf [8]byte
-	userBytes := userBuf[:copy(userBuf[:], code)]
+	userBytes := []byte(code)
 
 	var expectedBuf [8]byte
 	expected := h.genDigits(expectedBuf[:], counter, ctxBytes)

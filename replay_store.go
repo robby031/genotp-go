@@ -73,12 +73,23 @@ func (s *InMemoryReplayStore) removeFromOrderLocked(key string) {
 }
 
 func (s *InMemoryReplayStore) sweepExpiredLocked(nowNano int64) {
-	for k, exp := range s.entries {
+	// Rebuild order in a single O(N) pass instead of calling
+	// removeFromOrderLocked per expired entry (which would be O(N^2)).
+	// Safe to reuse s.order's backing array: each iteration reads s.order[i]
+	// into k before append writes to position len(newOrder) <= i.
+	newOrder := s.order[:0]
+	for _, k := range s.order {
+		exp, ok := s.entries[k]
+		if !ok {
+			continue
+		}
 		if exp <= nowNano {
 			delete(s.entries, k)
-			s.removeFromOrderLocked(k)
+			continue
 		}
+		newOrder = append(newOrder, k)
 	}
+	s.order = newOrder
 }
 
 func (s *InMemoryReplayStore) evictBatchLocked() {

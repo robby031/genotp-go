@@ -146,3 +146,76 @@ func TestVerifyWithResyncRejectsHugeLookAhead(t *testing.T) {
 		t.Errorf("lookAhead u64::MAX should return ErrInvalidCounter, got %v", err)
 	}
 }
+
+// Sebelumnya Verify pakai userBuf [8]byte yang memotong input via copy().
+// Untuk digits=8, kode "12345678XYZ" akan ter-truncate ke "12345678"
+// dan diterima sebagai valid. Test ini menjaga fix supaya kode dengan
+// panjang != digits selalu ditolak.
+func TestVerifyRejectsOverlengthCode(t *testing.T) {
+	secret := []byte("12345678901234567890")
+
+	// TOTP digits=8
+	totp, err := genotp.NewTOTP(secret, genotp.SHA1, 8, 30)
+	if err != nil {
+		t.Fatalf("NewTOTP: %v", err)
+	}
+	timeVal := uint64(1234567890)
+	code, err := totp.Generate(&timeVal)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if len(code) != 8 {
+		t.Fatalf("expected 8-digit code, got %q", code)
+	}
+
+	for _, suffix := range []string{"X", "XYZ", "0", "1234567890"} {
+		tampered := code + suffix
+		ok, err := totp.Verify(tampered, &timeVal, 0)
+		if err != nil {
+			t.Errorf("TOTP.Verify(%q) err: %v", tampered, err)
+		}
+		if ok {
+			t.Errorf("TOTP.Verify(%q) = true; over-length code must be rejected", tampered)
+		}
+	}
+
+	// TOTP VerifyBound
+	ctx := genotp.NewOtpContextBuilder().IP("1.2.3.4").Build()
+	boundCode, err := totp.GenBound(ctx, &timeVal)
+	if err != nil {
+		t.Fatalf("GenBound: %v", err)
+	}
+	if ok, _ := totp.VerifyBound(boundCode+"Z", ctx, &timeVal, 0); ok {
+		t.Errorf("TOTP.VerifyBound accepted over-length code")
+	}
+
+	// HOTP digits=8
+	hotp, err := genotp.NewHOTP(secret, genotp.SHA1, 8)
+	if err != nil {
+		t.Fatalf("NewHOTP: %v", err)
+	}
+	hcode, err := hotp.Generate(0)
+	if err != nil {
+		t.Fatalf("HOTP.Generate: %v", err)
+	}
+	if ok, _ := hotp.Verify(hcode+"X", 0); ok {
+		t.Errorf("HOTP.Verify accepted over-length code")
+	}
+	if _, ok, _ := hotp.VerifyWithResync(hcode+"X", 0, 5); ok {
+		t.Errorf("HOTP.VerifyWithResync accepted over-length code")
+	}
+	if ok, _ := hotp.VerifyBound(hcode+"X", 0, nil); ok {
+		t.Errorf("HOTP.VerifyBound accepted over-length code")
+	}
+
+	// VerifyTracking
+	detector := genotp.NewClockSkewDetector(64)
+	if ok, _ := totp.VerifyTracking(code+"Z", &timeVal, 0, detector); ok {
+		t.Errorf("TOTP.VerifyTracking accepted over-length code")
+	}
+
+	// Sanity: kode yang benar (panjang persis 8) tetap diterima.
+	if ok, _ := totp.Verify(code, &timeVal, 0); !ok {
+		t.Errorf("TOTP.Verify(correct) returned false")
+	}
+}
