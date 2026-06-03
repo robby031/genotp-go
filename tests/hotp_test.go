@@ -135,7 +135,7 @@ func TestHOTPVerifyWithResync(t *testing.T) {
 		t.Errorf("Expected match at counter 13, got matched=%d, ok=%v", matched, ok)
 	}
 
-	matched, ok, err = hotp.VerifyWithResync(userCode, stored, 2)
+	_, ok, err = hotp.VerifyWithResync(userCode, stored, 2)
 	if err != nil {
 		t.Fatalf("Failed to verify with resync: %v", err)
 	}

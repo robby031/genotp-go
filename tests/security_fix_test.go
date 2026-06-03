@@ -34,7 +34,7 @@ func TestTOTPWindowMaxInt64Rejection(t *testing.T) {
 	}
 
 	// Test window == math.MaxInt64 - 1 (should also be rejected as unreasonably large)
-	ok, err = totp.Verify(code, &testTime, math.MaxInt64-1)
+	ok, _ = totp.Verify(code, &testTime, math.MaxInt64-1)
 	if ok {
 		t.Error("Verification should fail for unreasonably large window")
 	}
