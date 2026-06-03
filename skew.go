@@ -175,11 +175,12 @@ func (d *ClockSkewDetector) Report() SkewReport {
 	edgeHitRatio := float64(edgeHits) / float64(sampleCount)
 
 	var recommend SkewRecommend
-	if edgeHitRatio >= 0.2 {
+	switch {
+	case edgeHitRatio >= 0.2:
 		recommend = WidenWindowOrCheckNtp
-	} else if math.Abs(meanOffset) >= 0.5 {
+	case math.Abs(meanOffset) >= 0.5:
 		recommend = ConsistentDrift
-	} else {
+	default:
 		recommend = NoActionNeeded
 	}
 
