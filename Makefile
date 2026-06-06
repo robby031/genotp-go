@@ -1,10 +1,17 @@
-.PHONY: all build test bench bench-short fuzz fuzz-clean clean clean-all help
+.PHONY: all build test bench bench-short fuzz fuzz-clean clean clean-all build-wasm help
+
+WASM_OUT ?= ../../js/genotp-serverless/wasm/genotp.wasm
 
 all: build test fuzz
+
+build-wasm:
+	cd wasm && GOOS=wasip1 GOARCH=wasm go build -ldflags="-s -w" -o $(WASM_OUT) .
+	@echo "WASM built -> $(WASM_OUT) ($$(du -sh $(WASM_OUT) | cut -f1))"
 
 help:
 	@echo "Available make targets:"
 	@echo "  make build       Build all code"
+	@echo "  make build-wasm  Compile WASM module -> $(WASM_OUT)"
 	@echo "  make test        Run all tests"
 	@echo "  make bench       Run all benchmarks with -benchmem"
 	@echo "  make bench-short Run benchmarks with short -benchtime (smoke)"
