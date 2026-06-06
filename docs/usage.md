@@ -14,6 +14,7 @@ This guide provides practical examples for every feature in genotp-go, organized
 - [Context Binding](#context-binding)
 - [Secret Providers](#secret-providers)
 - [HMAC Providers](#hmac-providers)
+- [Batch Verification](#batch-verification)
 - [Verifier (Replay & Rate Limiting)](#verifier-replay--rate-limiting)
 - [Clock Skew Detection](#clock-skew-detection)
 - [Metrics](#metrics)
@@ -264,6 +265,61 @@ Notes:
 See [`provider_adapters.md`](provider_adapters.md) for concrete adapter
 patterns such as AWS KMS decrypt-backed `SecretProvider` and Vault Transit
 `HMACProvider`.
+
+---
+
+## Batch Verification
+
+Use batch verification when your application needs explicit per-item OTP checks
+for bulk workflows such as webhook authentication, queued internal jobs, or
+transaction processing.
+
+The v1 batch APIs are intentionally simple:
+- They are additive. Existing single-item verify APIs are unchanged.
+- They preserve the exact semantics of single-item verification.
+- They run sequentially and return one result per input item.
+- They do not add hidden concurrency, replay behavior, or global short-circuiting.
+
+### HOTP Batch Verification
+
+```go
+results := hotp.VerifyBatch([]genotp.HOTPVerifyRequest{
+    {Code: "755224", Counter: 0},
+    {Code: "287082", Counter: 1},
+})
+
+for _, result := range results {
+    if result.Err != nil {
+        log.Printf("verify error: %v", result.Err)
+        continue
+    }
+    log.Printf("ok=%v", result.OK)
+}
+```
+
+### Context-Bound TOTP Batch Verification
+
+```go
+results := totp.VerifyBoundBatch([]genotp.TOTPVerifyBoundRequest{
+    {
+        Code:    codeA,
+        Context: ctxA,
+        Time:    &timeVal,
+        Window:  1,
+    },
+    {
+        Code:    codeB,
+        Context: ctxB,
+        Time:    &timeVal,
+        Window:  1,
+    },
+})
+```
+
+Use batch verification for clearer orchestration and per-item reporting. For
+provider-backed modes, it also gives adapter authors a stable surface to add
+their own higher-level batching outside the library when their backend supports
+it.
 
 ### Clock Skew Tracking
 

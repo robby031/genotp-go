@@ -13,12 +13,13 @@ Security-focused OTP library in Go. Full implementation of **HOTP (RFC 4226)** a
 - ✅ Passes all RFC 4226 & RFC 6238 test vectors (SHA1/256/512)
 - ✅ Replay protection + rate limiting with bounded memory
 - ✅ Constant-time comparison to prevent timing attacks
-- ✅ **Context binding** — OTP codes bound to (IP, device, session, origin)
-- ✅ **Coarse location context** — region / geo bucket / distance class helpers
-- ✅ **Per-context replay isolation** — code collisions between users don't block each other
-- ✅ **Anti-phishing origin binding** — origin URL automatically normalized
-- ✅ **SecretProvider support** — additive path for wrapped or externally-resolved secrets
-- ✅ **HMACProvider support** — non-exportable key path for HSM-native OTP
+- ✅ **Context binding** - OTP codes bound to (IP, device, session, origin)
+- ✅ **Coarse location context** - region / geo bucket / distance class helpers
+- ✅ **Per-context replay isolation** - code collisions between users don't block each other
+- ✅ **Anti-phishing origin binding** - origin URL automatically normalized
+- ✅ **SecretProvider support** - additive path for wrapped or externally-resolved secrets
+- ✅ **HMACProvider support** - non-exportable key path for HSM-native OTP
+- ✅ **Explicit batch verification** - additive per-item verify APIs for bulk workloads
 - ✅ **Clock skew detector** with opt-in auto-adjust
 - ✅ Compatible with Google Authenticator / Authy / Microsoft Authenticator (default mode)
 - ✅ Comprehensive test coverage
