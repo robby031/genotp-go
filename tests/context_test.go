@@ -83,3 +83,52 @@ func TestOtpContextBuilderCustomField(t *testing.T) {
 		t.Error("Custom field should add bytes")
 	}
 }
+
+func TestOtpContextBuilderRegionNormalization(t *testing.T) {
+	ctx1 := genotp.NewOtpContextBuilder().Region(" ID-LMG-BLULUK ").Build()
+	ctx2 := genotp.NewOtpContextBuilder().Region("id-lmg-bluluk").Build()
+
+	if string(ctx1.Bytes()) != string(ctx2.Bytes()) {
+		t.Error("Region normalization should trim spaces and lowercase")
+	}
+}
+
+func TestOtpContextBuilderGeoBucketNormalization(t *testing.T) {
+	ctx1 := genotp.NewOtpContextBuilder().GeoBucket(" H3-8A2B ").Build()
+	ctx2 := genotp.NewOtpContextBuilder().GeoBucket("h3-8a2b").Build()
+
+	if string(ctx1.Bytes()) != string(ctx2.Bytes()) {
+		t.Error("GeoBucket normalization should trim spaces and lowercase")
+	}
+}
+
+func TestOtpContextBuilderDistanceClassValidation(t *testing.T) {
+	ctx1 := genotp.NewOtpContextBuilder().DistanceClass(genotp.DistanceClassNearby).Build()
+	ctx2 := genotp.NewOtpContextBuilder().DistanceClass(" Nearby ").Build()
+	empty := genotp.NewOtpContextBuilder().DistanceClass("block_radius_250m").Build()
+
+	if string(ctx1.Bytes()) != string(ctx2.Bytes()) {
+		t.Error("DistanceClass should normalize valid values")
+	}
+	if !empty.IsEmpty() {
+		t.Error("Invalid distance class should be ignored")
+	}
+}
+
+func TestOtpContextBuilderLocationHelpersStableOrder(t *testing.T) {
+	ctx1 := genotp.NewOtpContextBuilder().
+		Region("id-lmg-bluluk").
+		GeoBucket("cell-a1").
+		DistanceClass(genotp.DistanceClassSameArea).
+		Build()
+
+	ctx2 := genotp.NewOtpContextBuilder().
+		DistanceClass(genotp.DistanceClassSameArea).
+		GeoBucket("cell-a1").
+		Region("id-lmg-bluluk").
+		Build()
+
+	if string(ctx1.Bytes()) != string(ctx2.Bytes()) {
+		t.Error("Location helper order should not affect result")
+	}
+}

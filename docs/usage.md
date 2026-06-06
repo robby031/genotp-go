@@ -174,6 +174,29 @@ code, _ := totp.GenBound(ctx, nil)
 ok, _ := totp.VerifyBound(userCode, ctx, nil, 1)
 ```
 
+### Coarse Location Context
+
+Prefer coarse, application-defined location labels instead of raw GPS
+coordinates. This improves stability and keeps OTP verification resilient to
+location jitter.
+
+```go
+ctx := genotp.NewOtpContextBuilder().
+    Session("login-abc123").
+    Region("id-lmg-bluluk").
+    GeoBucket("grid-a1").
+    DistanceClass(genotp.DistanceClassNearby).
+    Build()
+
+code, _ := totp.GenBound(ctx, nil)
+ok, _ := totp.VerifyBound(userCode, ctx, nil, 1)
+```
+
+Valid distance classes are:
+- `genotp.DistanceClassSameArea`
+- `genotp.DistanceClassNearby`
+- `genotp.DistanceClassFar`
+
 ### Clock Skew Tracking
 
 See the [Clock Skew Detection](#clock-skew-detection) section for the recommended pattern.

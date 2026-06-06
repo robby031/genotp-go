@@ -14,6 +14,7 @@ Security-focused OTP library in Go. Full implementation of **HOTP (RFC 4226)** a
 - ✅ Replay protection + rate limiting with bounded memory
 - ✅ Constant-time comparison to prevent timing attacks
 - ✅ **Context binding** — OTP codes bound to (IP, device, session, origin)
+- ✅ **Coarse location context** — region / geo bucket / distance class helpers
 - ✅ **Per-context replay isolation** — code collisions between users don't block each other
 - ✅ **Anti-phishing origin binding** — origin URL automatically normalized
 - ✅ **Clock skew detector** with opt-in auto-adjust
@@ -149,7 +150,13 @@ Bind OTP codes to specific contexts:
 - Device identifier
 - Session ID
 - Origin URL (anti-phishing)
+- Region or geo bucket (coarse location context)
+- Distance class (`same_area`, `nearby`, `far`)
 - Custom fields
+
+For production use, prefer coarse, application-defined location labels over raw
+latitude/longitude. This keeps OTP flows more stable across GPS jitter,
+platform differences, and privacy constraints.
 
 Two modes:
 1. **HMAC binding**: Different contexts produce different OTP codes

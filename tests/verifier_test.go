@@ -105,3 +105,29 @@ func TestVerifierEmptyContext(t *testing.T) {
 		t.Error("Replay with empty context should be blocked")
 	}
 }
+
+func TestVerifierWithCoarseLocationContext(t *testing.T) {
+	verifier := genotp.NewVerifier(5)
+	issued := genotp.NewOtpContextBuilder().
+		Session("s1").
+		Region("id-lmg-bluluk").
+		DistanceClass(genotp.DistanceClassNearby).
+		Build()
+	same := genotp.NewOtpContextBuilder().
+		Session("s1").
+		Region("ID-LMG-BLULUK").
+		DistanceClass(" nearby ").
+		Build()
+	different := genotp.NewOtpContextBuilder().
+		Session("s1").
+		Region("id-lmg-bluluk").
+		DistanceClass(genotp.DistanceClassFar).
+		Build()
+
+	if !verifier.VerifyWithContext("123456", "123456", issued, same) {
+		t.Error("Verification with matching coarse location context should succeed")
+	}
+	if verifier.VerifyWithContext("123456", "123456", issued, different) {
+		t.Error("Verification with different coarse location context should fail")
+	}
+}
