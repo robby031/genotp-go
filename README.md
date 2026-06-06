@@ -144,32 +144,32 @@ if hotp.VerifyBound(form.Code, counter, ctx) {
 // Attacker who intercepts code from different IP/session -> automatically rejected.
 ```
 
-## Benchmarks
+## Benchmarks 07-06-2026
 ```text
 go test ./tests -run=^$ -bench=. -benchmem
 goos: darwin
 goarch: arm64
 pkg: github.com/robby031/genotp-go/tests
 cpu: Apple M4
-BenchmarkHOTPGenerate-10                        11594641               103.8 ns/op             8 B/op          1 allocs/op
-BenchmarkHOTPVerify-10                          12101896               100.8 ns/op             0 B/op          0 allocs/op
-BenchmarkTOTPGenerate-10                         9147596               133.5 ns/op             8 B/op          1 allocs/op
-BenchmarkTOTPGenerateAtFixedTime-10             11884428               102.7 ns/op             8 B/op          1 allocs/op
-BenchmarkTOTPVerify-10                           3915612               311.9 ns/op             0 B/op          0 allocs/op
-BenchmarkTOTPVerifyWindow0-10                   12052402               101.4 ns/op             0 B/op          0 allocs/op
-BenchmarkGenerateSecretDefault-10                6314148               189.8 ns/op            24 B/op          1 allocs/op
-BenchmarkGenerateSecret256-10                    6483253               183.7 ns/op            32 B/op          1 allocs/op
-BenchmarkBase32Encode-10                        60588847                19.33 ns/op           32 B/op          1 allocs/op
-BenchmarkBase32Decode-10                        24431085                50.09 ns/op            0 B/op          0 allocs/op
-BenchmarkProvisioningURITOTP-10                  3440808               341.6 ns/op           512 B/op         12 allocs/op
-BenchmarkProvisioningURIHOTP-10                  3509725               345.5 ns/op           512 B/op         12 allocs/op
-BenchmarkReplayProtectionVerify-10               5701665               213.6 ns/op            76 B/op          1 allocs/op
-BenchmarkRateLimiterContention-10                 186915              6427 ns/op             112 B/op          5 allocs/op
-BenchmarkConcurrentHOTPVerify-10                   43360             27330 ns/op             208 B/op          5 allocs/op
-BenchmarkTOTPVerifyParallel-10                  71130606                15.92 ns/op            0 B/op          0 allocs/op
-BenchmarkVerifierParallelFreshCodes-10           2921683               373.5 ns/op            76 B/op          1 allocs/op
+BenchmarkHOTPGenerate-10                        11958049               100.7 ns/op             8 B/op          1 allocs/op
+BenchmarkHOTPVerify-10                          12271438                98.93 ns/op            0 B/op          0 allocs/op
+BenchmarkTOTPGenerate-10                         9337573               132.1 ns/op             8 B/op          1 allocs/op
+BenchmarkTOTPGenerateAtFixedTime-10             11920894               100.5 ns/op             8 B/op          1 allocs/op
+BenchmarkTOTPVerify-10                           4001732               303.8 ns/op             0 B/op          0 allocs/op
+BenchmarkTOTPVerifyWindow0-10                   12422841                98.22 ns/op            0 B/op          0 allocs/op
+BenchmarkGenerateSecretDefault-10                6406161               185.3 ns/op            24 B/op          1 allocs/op
+BenchmarkGenerateSecret256-10                    6735511               179.3 ns/op            32 B/op          1 allocs/op
+BenchmarkBase32Encode-10                        61364334                18.57 ns/op           32 B/op          1 allocs/op
+BenchmarkBase32Decode-10                        24849778                49.38 ns/op            0 B/op          0 allocs/op
+BenchmarkProvisioningURITOTP-10                  3556134               331.0 ns/op           512 B/op         12 allocs/op
+BenchmarkProvisioningURIHOTP-10                  3594416               331.2 ns/op           512 B/op         12 allocs/op
+BenchmarkReplayProtectionVerify-10               5728464               213.9 ns/op            76 B/op          1 allocs/op
+BenchmarkRateLimiterContention-10                 186141              6520 ns/op             112 B/op          5 allocs/op
+BenchmarkConcurrentHOTPVerify-10                   43528             27301 ns/op             208 B/op          5 allocs/op
+BenchmarkTOTPVerifyParallel-10                  71319079                16.08 ns/op            0 B/op          0 allocs/op
+BenchmarkVerifierParallelFreshCodes-10           2907163               377.3 ns/op            76 B/op          1 allocs/op
 PASS
-ok      github.com/robby031/genotp-go/tests     24.712s
+ok      github.com/robby031/genotp-go/tests     24.891s
 ```
 
 ## Features
