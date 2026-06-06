@@ -26,20 +26,39 @@ type macBuf struct {
 }
 
 type HOTP struct {
-	secret    []byte
+	runtime   secretRuntime
 	algorithm Algorithm
 	digits    uint32
 	modValue  uint32
 	macPool   sync.Pool
+	hashFn    func() hash.Hash
 	cleared   atomic.Bool
 }
 
 func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
+	return newHOTPWithRuntime(newStaticSecretRuntime(secret), algorithm, digits)
+}
+
+func NewHOTPFromSecretProvider(provider SecretProvider, algorithm Algorithm, digits uint32) (*HOTP, error) {
+	if provider == nil {
+		return nil, ErrInvalidSecret
+	}
+	return newHOTPWithRuntime(newProviderSecretRuntime(provider), algorithm, digits)
+}
+
+func NewHOTPFromHMACProvider(provider HMACProvider, algorithm Algorithm, digits uint32) (*HOTP, error) {
+	if provider == nil {
+		return nil, ErrInvalidSecret
+	}
+	return newHOTPWithRuntime(newHMACProviderRuntime(provider), algorithm, digits)
+}
+
+func newHOTPWithRuntime(runtime secretRuntime, algorithm Algorithm, digits uint32) (*HOTP, error) {
 	if digits < 6 || digits > 8 {
 		return nil, ErrInvalidDigits
 	}
 
-	if len(secret) == 0 {
+	if !runtime.hasStaticSecret() && !runtime.hasExternalProvider() {
 		return nil, ErrInvalidSecret
 	}
 
@@ -49,15 +68,18 @@ func NewHOTP(secret []byte, algorithm Algorithm, digits uint32) (*HOTP, error) {
 	}
 
 	h := &HOTP{
-		secret:    secret,
+		runtime:   runtime,
 		algorithm: algorithm,
 		digits:    digits,
 		modValue:  uint32(math.Pow10(int(digits))),
+		hashFn:    hashFn,
 	}
 
-	h.macPool.New = func() any {
-		return &macBuf{
-			mac: hmac.New(hashFn, h.secret),
+	if runtime.hasStaticSecret() {
+		h.macPool.New = func() any {
+			return &macBuf{
+				mac: hmac.New(hashFn, h.runtime.secret),
+			}
 		}
 	}
 	return h, nil
@@ -81,7 +103,10 @@ func (h *HOTP) Generate(counter uint64) (string, error) {
 		return "", ErrInvalidSecret
 	}
 	var buf [8]byte
-	out := h.genDigits(buf[:], counter, nil)
+	out, err := h.genDigits(buf[:], counter, nil)
+	if err != nil {
+		return "", err
+	}
 	return string(out), nil
 }
 
@@ -92,7 +117,10 @@ func (h *HOTP) Verify(code string, counter uint64) (bool, error) {
 	userBytes := []byte(code)
 
 	var expectedBuf [8]byte
-	expected := h.genDigits(expectedBuf[:], counter, nil)
+	expected, err := h.genDigits(expectedBuf[:], counter, nil)
+	if err != nil {
+		return false, err
+	}
 	return constTimeEqBytes(userBytes, expected), nil
 }
 
@@ -113,7 +141,10 @@ func (h *HOTP) VerifyWithResync(code string, counter uint64, lookAhead uint64) (
 		}
 
 		var expectedBuf [8]byte
-		expected := h.genDigits(expectedBuf[:], testCounter, nil)
+		expected, err := h.genDigits(expectedBuf[:], testCounter, nil)
+		if err != nil {
+			return 0, false, err
+		}
 		if constTimeEqBytes(userBytes, expected) {
 			return testCounter, true, nil
 		}
@@ -131,7 +162,10 @@ func (h *HOTP) GenBound(counter uint64, context *OtpContext) (string, error) {
 		ctxBytes = context.Bytes()
 	}
 	var buf [8]byte
-	out := h.genDigits(buf[:], counter, ctxBytes)
+	out, err := h.genDigits(buf[:], counter, ctxBytes)
+	if err != nil {
+		return "", err
+	}
 	return string(out), nil
 }
 
@@ -146,16 +180,41 @@ func (h *HOTP) VerifyBound(code string, counter uint64, context *OtpContext) (bo
 	userBytes := []byte(code)
 
 	var expectedBuf [8]byte
-	expected := h.genDigits(expectedBuf[:], counter, ctxBytes)
+	expected, err := h.genDigits(expectedBuf[:], counter, ctxBytes)
+	if err != nil {
+		return false, err
+	}
 	return constTimeEqBytes(userBytes, expected), nil
 }
 
-func (h *HOTP) genDigits(dst []byte, counter uint64, context []byte) []byte {
-	code := h.computeTruncated(counter, context)
-	return formatOTP(dst, code, h.digits)
+func (h *HOTP) genDigits(dst []byte, counter uint64, context []byte) ([]byte, error) {
+	code, err := h.computeTruncated(counter, context)
+	if err != nil {
+		return nil, err
+	}
+	return formatOTP(dst, code, h.digits), nil
 }
 
-func (h *HOTP) computeTruncated(counter uint64, context []byte) uint32 {
+func (h *HOTP) computeTruncated(counter uint64, context []byte) (uint32, error) {
+	if h.runtime.hasStaticSecret() {
+		return h.computeTruncatedStatic(counter, context), nil
+	}
+
+	var counterBuf [8]byte
+	binary.BigEndian.PutUint64(counterBuf[:], counter)
+	message := counterBuf[:]
+	if len(context) > 0 {
+		message = append(message, contextBindTagBytes...)
+		message = append(message, context...)
+	}
+	hmacBytes, err := h.runtime.computeHMAC(h.algorithm, h.hashFn, message)
+	if err != nil {
+		return 0, err
+	}
+	return dynamicTruncate(hmacBytes, h.modValue), nil
+}
+
+func (h *HOTP) computeTruncatedStatic(counter uint64, context []byte) uint32 {
 	mb := h.macPool.Get().(*macBuf)
 	binary.BigEndian.PutUint64(mb.counter[:], counter)
 	mb.mac.Reset()
@@ -190,7 +249,5 @@ func formatOTP(dst []byte, code, digits uint32) []byte {
 
 func (h *HOTP) ClearSecret() {
 	h.cleared.Store(true)
-	for i := range h.secret {
-		h.secret[i] = 0
-	}
+	h.runtime.clearStaticSecret()
 }

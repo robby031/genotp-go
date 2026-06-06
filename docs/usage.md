@@ -12,6 +12,8 @@ This guide provides practical examples for every feature in genotp-go, organized
 - [Base32 Encoding](#base32-encoding)
 - [Provisioning URI](#provisioning-uri)
 - [Context Binding](#context-binding)
+- [Secret Providers](#secret-providers)
+- [HMAC Providers](#hmac-providers)
 - [Verifier (Replay & Rate Limiting)](#verifier-replay--rate-limiting)
 - [Clock Skew Detection](#clock-skew-detection)
 - [Metrics](#metrics)
@@ -196,6 +198,72 @@ Valid distance classes are:
 - `genotp.DistanceClassSameArea`
 - `genotp.DistanceClassNearby`
 - `genotp.DistanceClassFar`
+
+---
+
+## Secret Providers
+
+Use a `SecretProvider` when your application stores OTP secrets in wrapped or
+externally-managed form and only wants to resolve them at the moment of use.
+
+```go
+provider := genotp.SecretProviderFunc(func() ([]byte, error) {
+    // Example: decrypt with KMS, unwrap from HSM-adjacent storage,
+    // or fetch from an external secret manager.
+    return loadUserSecret()
+})
+
+totp, err := genotp.NewTOTPFromSecretProvider(provider, genotp.SHA256, 6, 30)
+if err != nil {
+    log.Fatal(err)
+}
+
+code, err := totp.Generate(nil)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+Notes:
+- This is an additive API. Existing `NewHOTP(...)` and `NewTOTP(...)` flows are unchanged.
+- In this v1 model, the provider resolves secret bytes per OTP operation.
+- Temporary secret buffers are zeroed after use.
+- This is best suited for wrapped-secret / KMS-unlock flows.
+- A future `HMACProvider` style abstraction can support true non-exportable HSM-backed keys without changing this API.
+
+---
+
+## HMAC Providers
+
+Use an `HMACProvider` when the OTP key must remain non-exportable and all HMAC
+operations must be delegated to an HSM, KMS-native MAC API, or remote signing
+service.
+
+```go
+provider := genotp.HMACProviderFunc(func(algorithm genotp.Algorithm, message []byte) ([]byte, error) {
+    return signWithHSM(algorithm, message)
+})
+
+hotp, err := genotp.NewHOTPFromHMACProvider(provider, genotp.SHA1, 6)
+if err != nil {
+    log.Fatal(err)
+}
+
+code, err := hotp.Generate(42)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+Notes:
+- This is an additive API. Existing constructors and `SecretProvider` mode are unchanged.
+- The library never resolves raw secret bytes in this mode.
+- The provider must return a full HMAC output matching the requested algorithm.
+- This is the preferred path for true non-exportable HSM-backed OTP keys.
+
+See [`provider_adapters.md`](provider_adapters.md) for concrete adapter
+patterns such as AWS KMS decrypt-backed `SecretProvider` and Vault Transit
+`HMACProvider`.
 
 ### Clock Skew Tracking
 

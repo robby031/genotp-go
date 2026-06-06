@@ -3,6 +3,7 @@ package genotp
 import (
 	"crypto/hmac"
 	"encoding/binary"
+	"hash"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -10,16 +11,35 @@ import (
 )
 
 type TOTP struct {
-	secret    []byte
+	runtime   secretRuntime
 	algorithm Algorithm
 	digits    uint32
 	period    uint64
 	modValue  uint32
 	macPool   sync.Pool
+	hashFn    func() hash.Hash
 	cleared   atomic.Bool
 }
 
 func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (*TOTP, error) {
+	return newTOTPWithRuntime(newStaticSecretRuntime(secret), algorithm, digits, period)
+}
+
+func NewTOTPFromSecretProvider(provider SecretProvider, algorithm Algorithm, digits uint32, period uint64) (*TOTP, error) {
+	if provider == nil {
+		return nil, ErrInvalidSecret
+	}
+	return newTOTPWithRuntime(newProviderSecretRuntime(provider), algorithm, digits, period)
+}
+
+func NewTOTPFromHMACProvider(provider HMACProvider, algorithm Algorithm, digits uint32, period uint64) (*TOTP, error) {
+	if provider == nil {
+		return nil, ErrInvalidSecret
+	}
+	return newTOTPWithRuntime(newHMACProviderRuntime(provider), algorithm, digits, period)
+}
+
+func newTOTPWithRuntime(runtime secretRuntime, algorithm Algorithm, digits uint32, period uint64) (*TOTP, error) {
 	if digits < 6 || digits > 8 {
 		return nil, ErrInvalidDigits
 	}
@@ -28,7 +48,7 @@ func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (
 		return nil, ErrInvalidTime
 	}
 
-	if len(secret) == 0 {
+	if !runtime.hasStaticSecret() && !runtime.hasExternalProvider() {
 		return nil, ErrInvalidSecret
 	}
 
@@ -38,15 +58,18 @@ func NewTOTP(secret []byte, algorithm Algorithm, digits uint32, period uint64) (
 	}
 
 	t := &TOTP{
-		secret:    secret,
+		runtime:   runtime,
 		algorithm: algorithm,
 		digits:    digits,
 		period:    period,
 		modValue:  uint32(math.Pow10(int(digits))),
+		hashFn:    hashFn,
 	}
 
-	t.macPool.New = func() any {
-		return &macBuf{mac: hmac.New(hashFn, t.secret)}
+	if runtime.hasStaticSecret() {
+		t.macPool.New = func() any {
+			return &macBuf{mac: hmac.New(hashFn, t.runtime.secret)}
+		}
 	}
 	return t, nil
 }
@@ -59,7 +82,10 @@ func (t *TOTP) Generate(timeVal *uint64) (string, error) {
 	counter := current / t.period
 
 	var buf [8]byte
-	out := t.genDigits(buf[:], counter, nil)
+	out, err := t.genDigits(buf[:], counter, nil)
+	if err != nil {
+		return "", err
+	}
 	return string(out), nil
 }
 
@@ -82,7 +108,10 @@ func (t *TOTP) Verify(code string, timeVal *uint64, window uint64) (bool, error)
 	for i := -windowInt64; i <= windowInt64; i++ {
 		testCounter := addCounterSigned(counter, i)
 		var expectedBuf [8]byte
-		expected := t.genDigits(expectedBuf[:], testCounter, nil)
+		expected, err := t.genDigits(expectedBuf[:], testCounter, nil)
+		if err != nil {
+			return false, err
+		}
 		matched |= constantTimeEqByteResult(userBytes, expected)
 	}
 
@@ -102,7 +131,10 @@ func (t *TOTP) GenBound(context *OtpContext, timeVal *uint64) (string, error) {
 	}
 
 	var buf [8]byte
-	out := t.genDigits(buf[:], counter, ctxBytes)
+	out, err := t.genDigits(buf[:], counter, ctxBytes)
+	if err != nil {
+		return "", err
+	}
 	return string(out), nil
 }
 
@@ -128,7 +160,10 @@ func (t *TOTP) VerifyBound(code string, context *OtpContext, timeVal *uint64, wi
 	for i := -windowInt64; i <= windowInt64; i++ {
 		testCounter := addCounterSigned(counter, i)
 		var expectedBuf [8]byte
-		expected := t.genDigits(expectedBuf[:], testCounter, ctxBytes)
+		expected, err := t.genDigits(expectedBuf[:], testCounter, ctxBytes)
+		if err != nil {
+			return false, err
+		}
 		matched |= constantTimeEqByteResult(userBytes, expected)
 	}
 
@@ -159,7 +194,10 @@ func (t *TOTP) VerifyTracking(code string, timeVal *uint64, window uint64, detec
 			continue
 		}
 		var expectedBuf [8]byte
-		expected := t.genDigits(expectedBuf[:], testCounter, nil)
+		expected, err := t.genDigits(expectedBuf[:], testCounter, nil)
+		if err != nil {
+			return false, err
+		}
 		if constTimeEqBytes(userBytes, expected) {
 			detector.Record(i, window)
 			return true, nil
@@ -169,12 +207,34 @@ func (t *TOTP) VerifyTracking(code string, timeVal *uint64, window uint64, detec
 	return false, nil
 }
 
-func (t *TOTP) genDigits(dst []byte, counter uint64, context []byte) []byte {
-	code := t.computeTruncated(counter, context)
-	return formatOTP(dst, code, t.digits)
+func (t *TOTP) genDigits(dst []byte, counter uint64, context []byte) ([]byte, error) {
+	code, err := t.computeTruncated(counter, context)
+	if err != nil {
+		return nil, err
+	}
+	return formatOTP(dst, code, t.digits), nil
 }
 
-func (t *TOTP) computeTruncated(counter uint64, context []byte) uint32 {
+func (t *TOTP) computeTruncated(counter uint64, context []byte) (uint32, error) {
+	if t.runtime.hasStaticSecret() {
+		return t.computeTruncatedStatic(counter, context), nil
+	}
+
+	var counterBuf [8]byte
+	binary.BigEndian.PutUint64(counterBuf[:], counter)
+	message := counterBuf[:]
+	if len(context) > 0 {
+		message = append(message, contextBindTagBytes...)
+		message = append(message, context...)
+	}
+	hmacBytes, err := t.runtime.computeHMAC(t.algorithm, t.hashFn, message)
+	if err != nil {
+		return 0, err
+	}
+	return dynamicTruncate(hmacBytes, t.modValue), nil
+}
+
+func (t *TOTP) computeTruncatedStatic(counter uint64, context []byte) uint32 {
 	mb := t.macPool.Get().(*macBuf)
 	binary.BigEndian.PutUint64(mb.counter[:], counter)
 	mb.mac.Reset()
@@ -191,9 +251,7 @@ func (t *TOTP) computeTruncated(counter uint64, context []byte) uint32 {
 
 func (t *TOTP) ClearSecret() {
 	t.cleared.Store(true)
-	for i := range t.secret {
-		t.secret[i] = 0
-	}
+	t.runtime.clearStaticSecret()
 }
 
 func nowOr(timeVal *uint64) uint64 {

@@ -13,6 +13,8 @@ var (
 	ErrRateLimited        = errors.New("rate limited")
 	ErrReplayAttack       = errors.New("replay attack detected")
 	ErrDstTooSmall        = errors.New("destination buffer too small")
+	ErrSecretProvider     = errors.New("secret provider failure")
+	ErrHMACProvider       = errors.New("HMAC provider failure")
 )
 
 type GenOtpError struct {

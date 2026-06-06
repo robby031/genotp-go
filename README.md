@@ -17,6 +17,8 @@ Security-focused OTP library in Go. Full implementation of **HOTP (RFC 4226)** a
 - ✅ **Coarse location context** — region / geo bucket / distance class helpers
 - ✅ **Per-context replay isolation** — code collisions between users don't block each other
 - ✅ **Anti-phishing origin binding** — origin URL automatically normalized
+- ✅ **SecretProvider support** — additive path for wrapped or externally-resolved secrets
+- ✅ **HMACProvider support** — non-exportable key path for HSM-native OTP
 - ✅ **Clock skew detector** with opt-in auto-adjust
 - ✅ Compatible with Google Authenticator / Authy / Microsoft Authenticator (default mode)
 - ✅ Comprehensive test coverage
@@ -78,6 +80,47 @@ uri := genotp.NewOtpAuthUri(genotp.TotpType, "ACME:alice@example.com", genotp.En
 ```
 
 > **For comprehensive usage examples covering all features** — including HOTP/TOTP, builder/config patterns, context binding, verifier, clock skew detection, metrics, and production recommendations — see [`docs/usage.md`](docs/usage.md).
+
+For external key-manager integrations, see
+[`docs/provider_adapters.md`](docs/provider_adapters.md) for adapter patterns
+covering wrapped-secret and non-exportable HSM/KMS flows.
+
+### SecretProvider-backed OTP
+
+```go
+provider := genotp.SecretProviderFunc(func() ([]byte, error) {
+    // Example: unwrap from KMS or fetch from a secure external store.
+    return wrappedSecretResolver()
+})
+
+totp, err := genotp.NewTOTPFromSecretProvider(provider, genotp.SHA1, 6, 30)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+This mode is additive and keeps the existing API intact. In this v1 design,
+the provider resolves secret material on demand for each OTP operation, then
+the temporary buffer is zeroed after use. It improves encrypted-at-rest and
+external-secret-manager workflows, while leaving room for a future non-exportable
+HSM-backed HMAC mode.
+
+### HMACProvider-backed OTP
+
+```go
+provider := genotp.HMACProviderFunc(func(algorithm genotp.Algorithm, message []byte) ([]byte, error) {
+    // Example: delegate to an HSM-native or remote HMAC service.
+    return hsmSign(algorithm, message)
+})
+
+hotp, err := genotp.NewHOTPFromHMACProvider(provider, genotp.SHA256, 6)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+This path is intended for non-exportable OTP keys. The library sends only the
+counter/time-step message to the provider and receives the HMAC output back.
 
 ### Context binding — anti channel OTP intercept (flagship feature)
 
