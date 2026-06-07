@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 )
 
-const maxInt64Uint64 = uint64(^uint64(0) >> 1)
+const maxInt64Uint64 = ^uint64(0) >> 1
 
 type SkewRecommend int
 
