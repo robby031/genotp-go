@@ -2,6 +2,7 @@ package genotp
 
 import (
 	"crypto/hmac"
+	// #nosec G505 -- SHA1 remains required for RFC 4226 / Google Authenticator compatibility.
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"

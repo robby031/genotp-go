@@ -258,7 +258,11 @@ func nowOr(timeVal *uint64) uint64 {
 	if timeVal != nil {
 		return *timeVal
 	}
-	return uint64(time.Now().Unix())
+	now := time.Now().Unix()
+	if now <= 0 {
+		return 0
+	}
+	return uint64(now)
 }
 
 func addCounterSigned(counter uint64, delta int64) uint64 {

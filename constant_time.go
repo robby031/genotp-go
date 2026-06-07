@@ -1,5 +1,7 @@
 package genotp
 
+import "math/bits"
+
 func constantTimeEq(a, b string) bool {
 	return constTimeEqBytes([]byte(a), []byte(b))
 }
@@ -9,7 +11,7 @@ func constantTimeEqByteResult(a, b []byte) byte {
 	lenB := len(b)
 	maxLen := max(lenA, lenB)
 
-	diff := uint32(lenA) ^ uint32(lenB)
+	diff := uint(lenA ^ lenB)
 
 	for i := 0; i < maxLen; i++ {
 		var av, bv byte
@@ -19,10 +21,10 @@ func constantTimeEqByteResult(a, b []byte) byte {
 		if i < lenB {
 			bv = b[i]
 		}
-		diff |= uint32(av ^ bv)
+		diff |= uint(av ^ bv)
 	}
 
-	return byte(1 - ((diff | -diff) >> 31))
+	return byte(1 - ((diff | -diff) >> (bits.UintSize - 1)))
 }
 
 func constTimeEqBytes(a, b []byte) bool {
@@ -30,7 +32,7 @@ func constTimeEqBytes(a, b []byte) bool {
 	lenB := len(b)
 	maxLen := max(lenB, lenA)
 
-	diff := uint32(lenA) ^ uint32(lenB)
+	diff := uint(lenA ^ lenB)
 
 	for i := 0; i < maxLen; i++ {
 		var av, bv byte
@@ -40,9 +42,9 @@ func constTimeEqBytes(a, b []byte) bool {
 		if i < lenB {
 			bv = b[i]
 		}
-		diff |= uint32(av ^ bv)
+		diff |= uint(av ^ bv)
 	}
 
-	nonzero := (diff | -diff) >> 31
+	nonzero := (diff | -diff) >> (bits.UintSize - 1)
 	return nonzero == 0
 }

@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 )
 
+const maxInt64Uint64 = uint64(^uint64(0) >> 1)
+
 type SkewRecommend int
 
 const (
@@ -93,7 +95,11 @@ func (d *ClockSkewDetector) Record(matchedOffset int64, windowUsed uint64) {
 		s.writeIdx = (s.writeIdx + 1) % s.capacity
 	}
 
-	atomic.StoreInt64(&d.lastWindowUsed, int64(windowUsed))
+	if windowUsed > maxInt64Uint64 {
+		atomic.StoreInt64(&d.lastWindowUsed, math.MaxInt64)
+	} else {
+		atomic.StoreInt64(&d.lastWindowUsed, int64(windowUsed))
+	}
 
 	// EMA update must stay under lock — Load/compute/Store on smoothedScaled
 	// is a read-modify-write and would lose updates under concurrent Record.

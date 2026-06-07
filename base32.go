@@ -2,6 +2,7 @@ package genotp
 
 import (
 	"encoding/base32"
+	"math"
 	"sync"
 )
 
@@ -64,7 +65,11 @@ func DecodeBase32(dst []byte, src string) (int, error) {
 			if dstIdx >= len(dst) {
 				return 0, ErrDstTooSmall
 			}
-			dst[dstIdx] = byte(buffer >> bitsLeft)
+			v := buffer >> bitsLeft
+			if v < 0 || v > math.MaxUint8 {
+				return 0, ErrInvalidSecret
+			}
+			dst[dstIdx] = byte(v)
 			dstIdx++
 		}
 	}
