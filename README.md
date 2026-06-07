@@ -80,6 +80,39 @@ uri := genotp.NewOtpAuthUri(genotp.TotpType, "ACME:alice@example.com", genotp.En
 // Render `uri` to QR code (e.g., with a QR code library)
 ```
 
+### Google Authenticator migration QR (`otpauth-migration://`)
+
+```go
+accounts := []genotp.OtpAuthMigrationAccount{
+    {
+        Type:      genotp.TotpType,
+        Label:     "alice@example.com",
+        Issuer:    "Example",
+        SecretB32: "JBSWY3DPEHPK3PXP",
+        Algorithm: genotp.SHA1,
+        Digits:    6,
+        Period:    30,
+    },
+}
+
+uri, err := genotp.BuildOtpAuthMigrationURI(accounts, &genotp.OtpAuthMigrationOptions{
+    Version:    1,
+    BatchSize:  1,
+    BatchIndex: 0,
+    BatchID:    123456,
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+payload, err := genotp.ParseOtpAuthMigrationURI(uri)
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println(payload.Accounts[0].Label) // alice@example.com
+```
+
 > **For comprehensive usage examples covering all features** — including HOTP/TOTP, builder/config patterns, context binding, verifier, clock skew detection, metrics, and production recommendations — see [`docs/usage.md`](docs/usage.md).
 
 For external key-manager integrations, see

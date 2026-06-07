@@ -2,6 +2,7 @@ package genotp
 
 import (
 	"encoding/base64"
+	"math"
 	"net/url"
 	"strings"
 )
@@ -130,28 +131,40 @@ func ParseOtpAuthMigrationURI(raw string) (*OtpAuthMigrationPayload, error) {
 			if err != nil {
 				return nil, ErrInvalidMigration
 			}
-			payload.Version = int32(value)
+			payload.Version, err = checkedUint64ToInt32(value)
+			if err != nil {
+				return nil, ErrInvalidMigration
+			}
 			i = next
 		case 3:
 			value, next, err := readProtoScalar(decoded, i, wireType)
 			if err != nil {
 				return nil, ErrInvalidMigration
 			}
-			payload.BatchSize = int32(value)
+			payload.BatchSize, err = checkedUint64ToInt32(value)
+			if err != nil {
+				return nil, ErrInvalidMigration
+			}
 			i = next
 		case 4:
 			value, next, err := readProtoScalar(decoded, i, wireType)
 			if err != nil {
 				return nil, ErrInvalidMigration
 			}
-			payload.BatchIndex = int32(value)
+			payload.BatchIndex, err = checkedUint64ToInt32(value)
+			if err != nil {
+				return nil, ErrInvalidMigration
+			}
 			i = next
 		case 5:
 			value, next, err := readProtoScalar(decoded, i, wireType)
 			if err != nil {
 				return nil, ErrInvalidMigration
 			}
-			payload.BatchID = int32(value)
+			payload.BatchID, err = checkedUint64ToInt32(value)
+			if err != nil {
+				return nil, ErrInvalidMigration
+			}
 			i = next
 		default:
 			next, err := skipProtoField(decoded, i, wireType)
@@ -383,18 +396,18 @@ func otpTypeFromMigrationEnum(value uint64) OtpType {
 	return TotpType
 }
 
-func appendProtoStringField(dst []byte, field int, value string) []byte {
+func appendProtoStringField(dst []byte, field uint64, value string) []byte {
 	return appendProtoBytesField(dst, field, []byte(value))
 }
 
-func appendProtoBytesField(dst []byte, field int, value []byte) []byte {
-	dst = appendProtoVarint(dst, uint64(field<<3|2))
+func appendProtoBytesField(dst []byte, field uint64, value []byte) []byte {
+	dst = appendProtoVarint(dst, field<<3|2)
 	dst = appendProtoVarint(dst, uint64(len(value)))
 	return append(dst, value...)
 }
 
-func appendProtoVarintField(dst []byte, field int, value uint64) []byte {
-	dst = appendProtoVarint(dst, uint64(field<<3))
+func appendProtoVarintField(dst []byte, field uint64, value uint64) []byte {
+	dst = appendProtoVarint(dst, field<<3)
 	return appendProtoVarint(dst, value)
 }
 
@@ -428,7 +441,11 @@ func readProtoBytes(data []byte, offset int) ([]byte, int, error) {
 	if err != nil {
 		return nil, offset, err
 	}
-	end := next + int(size)
+	intSize, err := checkedUint64ToInt(size)
+	if err != nil {
+		return nil, offset, ErrInvalidMigration
+	}
+	end := next + intSize
 	if end < next || end > len(data) {
 		return nil, offset, ErrInvalidMigration
 	}
@@ -461,4 +478,19 @@ func skipProtoField(data []byte, offset, wireType int) (int, error) {
 	default:
 		return offset, ErrInvalidMigration
 	}
+}
+
+func checkedUint64ToInt32(value uint64) (int32, error) {
+	if value > math.MaxInt32 {
+		return 0, ErrInvalidMigration
+	}
+	return int32(value), nil
+}
+
+func checkedUint64ToInt(value uint64) (int, error) {
+	const maxInt = int(^uint(0) >> 1)
+	if value > uint64(maxInt) {
+		return 0, ErrInvalidMigration
+	}
+	return int(value), nil
 }
