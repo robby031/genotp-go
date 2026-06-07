@@ -15,6 +15,8 @@ var (
 	ErrDstTooSmall        = errors.New("destination buffer too small")
 	ErrSecretProvider     = errors.New("secret provider failure")
 	ErrHMACProvider       = errors.New("HMAC provider failure")
+	ErrInvalidURI         = errors.New("invalid otpauth URI")
+	ErrInvalidMigration   = errors.New("invalid otpauth-migration payload")
 )
 
 type GenOtpError struct {
