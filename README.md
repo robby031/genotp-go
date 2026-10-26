@@ -1,9 +1,6 @@
 # genotp-go
 
 [![CI](https://github.com/robby031/genotp-go/actions/workflows/ci.yml/badge.svg)](https://github.com/robby031/genotp-go/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/robby031/genotp-go)](https://goreportcard.com/report/github.com/robby031/genotp-go)
-[![codecov](https://codecov.io/gh/robby031/genotp-go/branch/main/graph/badge.svg)](https://codecov.io/gh/robby031/genotp-go)
-[![Go Reference](https://pkg.go.dev/badge/github.com/robby031/genotp-go.svg)](https://pkg.go.dev/github.com/robby031/genotp-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Security-focused OTP library in Go. Full implementation of **HOTP (RFC 4226)** and **TOTP (RFC 6238)** plus advanced features: **context binding**, **per-context replay isolation**, and **clock skew detection**.
