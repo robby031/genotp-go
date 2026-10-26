@@ -1,3 +1,3 @@
 module github.com/robby031/genotp-go
 
-go 1.21
+go 1.27
