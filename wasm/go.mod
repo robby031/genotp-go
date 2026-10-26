@@ -1,6 +1,6 @@
 module genotp-wasm
 
-go 1.24
+go 1.27
 
 require github.com/robby031/genotp-go v0.0.0
 

@@ -1,6 +1,6 @@
 # Usage Guide
 
-This guide provides practical examples for every feature in genotp-go, organized from simple to advanced. All examples use standard international English and match the actual library API.
+This guide provides practical examples for every feature in genotp-go, organized from simple to advanced.
 
 ## Table of Contents
 

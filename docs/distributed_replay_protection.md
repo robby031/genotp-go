@@ -203,7 +203,7 @@ func RateLimitMiddleware(next http.Handler) http.Handler {
 ## Failure mode: backend down
 
 `CheckAndRecord` mengembalikan error kalau backend mati. Verifier
-memperlakukan ini sebagai **fail closed** — kode ditolak, attempts
+memperlakukan ini sebagai **fail closed** - kode ditolak, attempts
 naik. Ini intentional:
 
 - Fail open (accept saat backend down) memungkinkan replay attack saat
@@ -213,5 +213,5 @@ naik. Ini intentional:
   fallback policy bisa ditangani di layer atas (mis. tolak auth
   sementara, redirect ke flow recovery, monitor uptime).
 
-Trade-off ini disengaja di library — security > availability untuk
+Trade-off ini disengaja di library - security > availability untuk
 crypto verify path.

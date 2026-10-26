@@ -174,32 +174,32 @@ if hotp.VerifyBound(form.Code, counter, ctx) {
 // Attacker who intercepts code from different IP/session -> automatically rejected.
 ```
 
-## Benchmarks 07-06-2026
+## Benchmarks 26-10-2026
 ```text
 go test ./tests -run=^$ -bench=. -benchmem
 goos: darwin
 goarch: arm64
 pkg: github.com/robby031/genotp-go/tests
 cpu: Apple M4
-BenchmarkHOTPGenerate-10                        11958049               100.7 ns/op             8 B/op          1 allocs/op
-BenchmarkHOTPVerify-10                          12271438                98.93 ns/op            0 B/op          0 allocs/op
-BenchmarkTOTPGenerate-10                         9337573               132.1 ns/op             8 B/op          1 allocs/op
-BenchmarkTOTPGenerateAtFixedTime-10             11920894               100.5 ns/op             8 B/op          1 allocs/op
-BenchmarkTOTPVerify-10                           4001732               303.8 ns/op             0 B/op          0 allocs/op
-BenchmarkTOTPVerifyWindow0-10                   12422841                98.22 ns/op            0 B/op          0 allocs/op
-BenchmarkGenerateSecretDefault-10                6406161               185.3 ns/op            24 B/op          1 allocs/op
-BenchmarkGenerateSecret256-10                    6735511               179.3 ns/op            32 B/op          1 allocs/op
-BenchmarkBase32Encode-10                        61364334                18.57 ns/op           32 B/op          1 allocs/op
-BenchmarkBase32Decode-10                        24849778                49.38 ns/op            0 B/op          0 allocs/op
-BenchmarkProvisioningURITOTP-10                  3556134               331.0 ns/op           512 B/op         12 allocs/op
-BenchmarkProvisioningURIHOTP-10                  3594416               331.2 ns/op           512 B/op         12 allocs/op
-BenchmarkReplayProtectionVerify-10               5728464               213.9 ns/op            76 B/op          1 allocs/op
-BenchmarkRateLimiterContention-10                 186141              6520 ns/op             112 B/op          5 allocs/op
-BenchmarkConcurrentHOTPVerify-10                   43528             27301 ns/op             208 B/op          5 allocs/op
-BenchmarkTOTPVerifyParallel-10                  71319079                16.08 ns/op            0 B/op          0 allocs/op
-BenchmarkVerifierParallelFreshCodes-10           2907163               377.3 ns/op            76 B/op          1 allocs/op
+BenchmarkHOTPGenerate-10                        10223626               108.9 ns/op             8 B/op          1 allocs/op
+BenchmarkHOTPVerify-10                          11288862               106.4 ns/op             0 B/op          0 allocs/op
+BenchmarkTOTPGenerate-10                         8580931               139.9 ns/op             8 B/op          1 allocs/op
+BenchmarkTOTPGenerateAtFixedTime-10              9957334               107.6 ns/op             8 B/op          1 allocs/op
+BenchmarkTOTPVerify-10                           3685792               325.4 ns/op             0 B/op          0 allocs/op
+BenchmarkTOTPVerifyWindow0-10                   11423978               106.4 ns/op             0 B/op          0 allocs/op
+BenchmarkGenerateSecretDefault-10                6232984               194.0 ns/op            24 B/op          1 allocs/op
+BenchmarkGenerateSecret256-10                    6272678               191.2 ns/op            32 B/op          1 allocs/op
+BenchmarkBase32Encode-10                        70436312                16.19 ns/op           32 B/op          1 allocs/op
+BenchmarkBase32Decode-10                        24082078                50.58 ns/op            0 B/op          0 allocs/op
+BenchmarkProvisioningURITOTP-10                  3561573               330.9 ns/op           512 B/op         12 allocs/op
+BenchmarkProvisioningURIHOTP-10                  3608091               330.7 ns/op           512 B/op         12 allocs/op
+BenchmarkReplayProtectionVerify-10               5823069               206.8 ns/op            76 B/op          1 allocs/op
+BenchmarkRateLimiterContention-10                 198138              6156 ns/op             112 B/op          5 allocs/op
+BenchmarkConcurrentHOTPVerify-10                   42229             28217 ns/op             208 B/op          5 allocs/op
+BenchmarkTOTPVerifyParallel-10                  68901992                16.94 ns/op            0 B/op          0 allocs/op
+BenchmarkVerifierParallelFreshCodes-10           2818580               375.9 ns/op            76 B/op          1 allocs/op
 PASS
-ok      github.com/robby031/genotp-go/tests     24.891s
+ok      github.com/robby031/genotp-go/tests     23.262s
 ```
 
 ## Features
@@ -300,12 +300,11 @@ All RFC test vectors are included and verified:
 The project uses GitHub Actions for automated testing on every push to `main` and pull requests:
 
 **CI Workflow includes:**
-- ✅ **Tests** - Run on Go 1.21, 1.22, and 1.23 with race detection
+- ✅ **Tests** - Run on Go 1.27 with race detection
 - ✅ **Fuzz Tests** - 30 seconds per fuzz target (10 fuzz functions total)
 - ✅ **Linting** - golangci-lint with 15+ enabled linters
 - ✅ **Security Scan** - gosec static analysis
 - ✅ **Build Verification** - Ensures code compiles and go.mod is tidy
-- ✅ **Code Coverage** - Uploaded to Codecov
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for the full configuration.
 
