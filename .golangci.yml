@@ -1,75 +1,72 @@
+version: "2"
 run:
-  timeout: 5m
-  tests: true
   modules-download-mode: readonly
-
+  tests: true
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
 linters:
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
+    - gocritic
     - gosec
-    - gofmt
-    - goimports
     - misspell
     - revive
     - unconvert
     - unparam
-    - gocritic
-
-linters-settings:
-  errcheck:
-    check-type-assertions: false
-    check-blank: true
-  
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-      - shadow
-  
-  gosec:
-    excludes:
-      - G104  # We handle errors appropriately
-      - G401  # We use MD5/SHA1 intentionally for HOTP/TOTP
-      - G505  # SHA1 is required by HOTP/TOTP RFC 4226/6238
-      - G115  # Integer overflow conversions are intentional and safe here
-  
-  revive:
+  settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: true
+    gosec:
+      excludes:
+        - G104
+        - G401
+        - G505
+        - G115
+    govet:
+      disable:
+        - fieldalignment
+        - shadow
+      enable-all: true
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+        - name: var-naming
+          disabled: true
+        - name: package-comments
+          disabled: true
+  exclusions:
+    generated: lax
     rules:
-      - name: exported
-        disabled: true
-      - name: var-naming
-        disabled: true
-      - name: package-comments
-        disabled: true
-
+      - linters:
+          - errcheck
+          - gosec
+          - ineffassign
+          - shadow
+          - unparam
+        path: _test\.go
+      - linters:
+          - errcheck
+          - gosec
+        path: fuzz/.*_fuzz_test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  
-  exclude-rules:
-    # Exclude certain linters from test files
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-        - unparam
-        - ineffassign
-        - shadow
-    
-    # Exclude fuzz test files from certain checks
-    - path: fuzz/.*_fuzz_test\.go
-      linters:
-        - errcheck
-        - gosec
-
-output:
-  formats:
-    - format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
